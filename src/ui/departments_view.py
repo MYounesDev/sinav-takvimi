@@ -85,7 +85,7 @@ class DepartmentsView(QWidget):
     def load_departments(self):
         """Load departments from database"""
         query = """
-            SELECT id, name, code, created_at
+            SELECT id, display_id, name, code, created_at
             FROM departments
             ORDER BY name
         """
@@ -95,7 +95,10 @@ class DepartmentsView(QWidget):
         self.table.setRowCount(len(departments))
         
         for row, dept in enumerate(departments):
-            self.table.setItem(row, 0, QTableWidgetItem(str(dept['id'])))
+            # Show display_id to user, but keep internal id for operations
+            self.table.setItem(row, 0, QTableWidgetItem(str(dept['display_id'])))
+            # Store the internal id as hidden data
+            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, dept['id'])
             self.table.setItem(row, 1, QTableWidgetItem(dept['name']))
             self.table.setItem(row, 2, QTableWidgetItem(dept['code']))
             created = dept['created_at'] or "N/A"
@@ -114,7 +117,8 @@ class DepartmentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a department to edit")
             return
         
-        dept_id = int(self.table.item(row, 0).text())
+        # Get internal id from hidden data
+        dept_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
         # Get department data
         query = "SELECT * FROM departments WHERE id = ?"
@@ -126,49 +130,41 @@ class DepartmentsView(QWidget):
                 self.load_departments()
     
     def delete_department(self):
-        """Delete selected department"""
+        """Delete selected department - CASCADE DELETE will handle related records"""
         row = self.table.currentRow()
         if row < 0:
             QMessageBox.warning(self, "No Selection", "Please select a department to delete")
             return
         
-        dept_id = int(self.table.item(row, 0).text())
+        # Get internal id from hidden data
+        dept_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         dept_name = self.table.item(row, 1).text()
         
-        # Check if department is in use
-        checks = [
-            ("students", "department_id"),
-            ("courses", "department_id"),
-            ("classrooms", "department_id"),
-            ("users", "department_id"),
-        ]
-        
-        in_use = False
-        for table, column in checks:
-            query = f"SELECT COUNT(*) as count FROM {table} WHERE {column} = ?"
-            result = db_manager.execute_query(query, (dept_id,))
-            if result[0]['count'] > 0:
-                in_use = True
-                QMessageBox.warning(
-                    self, "Cannot Delete",
-                    f"Cannot delete department '{dept_name}' because it is being used in {table}."
-                )
-                break
-        
-        if in_use:
-            return
-        
-        reply = QMessageBox.question(
+        # Warn user about CASCADE DELETE
+        reply = QMessageBox.warning(
             self, "Confirm Delete",
-            f"Are you sure you want to delete department '{dept_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            f"Are you sure you want to delete department '{dept_name}'?\n\n"
+            f"⚠️ WARNING: This will also delete ALL related records:\n"
+            f"  - All students in this department\n"
+            f"  - All courses in this department\n"
+            f"  - All classrooms in this department\n"
+            f"  - All coordinators for this department\n"
+            f"  - All exams for this department\n\n"
+            f"This action cannot be undone!",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            query = "DELETE FROM departments WHERE id = ?"
-            db_manager.execute_update(query, (dept_id,))
-            QMessageBox.information(self, "Success", "Department deleted successfully!")
-            self.load_departments()
+            try:
+                query = "DELETE FROM departments WHERE id = ?"
+                db_manager.execute_update(query, (dept_id,))
+                QMessageBox.information(self, "Success", 
+                    "Department and all related records deleted successfully!\n"
+                    "The ID will be reused for future entries.")
+                self.load_departments()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete department: {str(e)}")
 
 
 class DepartmentDialog(QDialog):
@@ -238,9 +234,12 @@ class DepartmentDialog(QDialog):
                 db_manager.execute_update(query, (name, self.dept_data['id']))
                 QMessageBox.information(self, "Success", "Department updated successfully!")
             else:
-                query = "INSERT INTO departments (name, code) VALUES (?, ?)"
-                db_manager.execute_update(query, (name, code))
-                QMessageBox.information(self, "Success", "Department created successfully!")
+                # Get next available display_id
+                display_id = db_manager.get_next_display_id('departments')
+                query = "INSERT INTO departments (display_id, name, code) VALUES (?, ?, ?)"
+                db_manager.execute_update(query, (display_id, name, code))
+                QMessageBox.information(self, "Success", 
+                    f"Department created successfully with ID: {display_id}")
             
             self.accept()
         except Exception as e:

@@ -227,7 +227,12 @@ class MainWindow(QMainWindow):
         
         # Update checked state of navigation buttons
         for i, btn in enumerate(self.nav_buttons):
-            btn.setChecked(i == index)
+            # Safety check: skip if button has been deleted
+            try:
+                btn.setChecked(i == index)
+            except RuntimeError:
+                # Button was deleted, skip
+                continue
         
         # Update page title
         user = get_current_user()
@@ -330,19 +335,22 @@ class MainWindow(QMainWindow):
         logout()
         self.current_user = None
         
-        # Remove admin navigation items
+        # Disconnect and remove admin navigation items
         if self.admin_users_btn:
+            self.admin_users_btn.clicked.disconnect()
             self.sidebar.layout().removeWidget(self.admin_users_btn)
             self.admin_users_btn.deleteLater()
+            if self.admin_users_btn in self.nav_buttons:
+                self.nav_buttons.remove(self.admin_users_btn)
             self.admin_users_btn = None
         
         if self.admin_depts_btn:
+            self.admin_depts_btn.clicked.disconnect()
             self.sidebar.layout().removeWidget(self.admin_depts_btn)
             self.admin_depts_btn.deleteLater()
+            if self.admin_depts_btn in self.nav_buttons:
+                self.nav_buttons.remove(self.admin_depts_btn)
             self.admin_depts_btn = None
-        
-        # Clear from nav_buttons
-        self.nav_buttons = [btn for btn in self.nav_buttons if btn not in [self.admin_users_btn, self.admin_depts_btn]]
         
         # Clear login form
         self.login_view.clear_form()

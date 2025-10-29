@@ -1,5 +1,5 @@
 """
-Database Manager - Enhanced with display_id support and CASCADE deletes
+Database Manager - Handles all SQLite database operations
 """
 
 import sqlite3
@@ -9,7 +9,7 @@ from config import DATABASE_PATH, DEFAULT_ADMIN
 
 
 class DatabaseManager:
-    """Manages SQLite database connections and operations with display_id support"""
+    """Manages SQLite database connections and operations"""
     
     def __init__(self):
         """Initialize database manager"""
@@ -96,9 +96,6 @@ class DatabaseManager:
             # Create tables
             self._create_tables(cursor)
             
-            # Create triggers for display_id management
-            self._create_triggers(cursor)
-            
             # Check if admin exists
             cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
             admin_count = cursor.fetchone()[0]
@@ -113,35 +110,12 @@ class DatabaseManager:
             conn.close()
     
     def _create_tables(self, cursor: sqlite3.Cursor):
-        """Create all database tables with display_id support"""
-        
-        # Deleted IDs tracking table for each entity type
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS deleted_ids (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
-                table_name TEXT NOT NULL,
-                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(table_name, display_id)
-            )
-        """)
-        
-        # Departments table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS departments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER UNIQUE NOT NULL,
-                name TEXT UNIQUE NOT NULL,
-                code TEXT UNIQUE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        """Create all database tables"""
         
         # Users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER UNIQUE NOT NULL,
+                id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
@@ -152,11 +126,20 @@ class DatabaseManager:
             )
         """)
         
+        # Departments table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS departments (
+                id INTEGER PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL,
+                code TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         # Classrooms table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS classrooms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -166,16 +149,14 @@ class DatabaseManager:
                 seats_per_desk INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, code),
-                UNIQUE(department_id, display_id)
+                UNIQUE(department_id, code)
             )
         """)
         
         # Courses table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS courses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -184,30 +165,27 @@ class DatabaseManager:
                 type TEXT CHECK(type IN ('mandatory', 'elective')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, code),
-                UNIQUE(department_id, display_id)
+                UNIQUE(department_id, code)
             )
         """)
         
         # Students table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 student_no TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 class_level INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, display_id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
         # Student-Course relationship table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS student_courses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 student_id INTEGER NOT NULL,
                 course_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -220,8 +198,7 @@ class DatabaseManager:
         # Exams table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exams (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
                 course_id INTEGER NOT NULL,
                 department_id INTEGER NOT NULL,
                 date TEXT NOT NULL,
@@ -230,15 +207,14 @@ class DatabaseManager:
                 exam_type TEXT DEFAULT 'final',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, display_id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
         # Exam-Classroom assignment table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_classrooms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 exam_id INTEGER NOT NULL,
                 classroom_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -251,7 +227,7 @@ class DatabaseManager:
         # Exam Seating table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_seating (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 student_id INTEGER NOT NULL,
                 exam_id INTEGER NOT NULL,
                 classroom_id INTEGER NOT NULL,
@@ -268,135 +244,9 @@ class DatabaseManager:
         
         # Create indexes for better performance
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_display_id ON users(display_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_students_no ON students(student_no)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_students_display_id ON students(display_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_display_id ON courses(display_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_classrooms_display_id ON classrooms(display_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_departments_display_id ON departments(display_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(date)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_exams_display_id ON exams(display_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_deleted_ids_table ON deleted_ids(table_name, display_id)")
-    
-    def _create_triggers(self, cursor: sqlite3.Cursor):
-        """Create triggers for automatic display_id management"""
-        
-        # Trigger to recycle deleted display_ids for departments
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_department
-            BEFORE DELETE ON departments
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('departments', OLD.display_id);
-            END
-        """)
-        
-        # Trigger to recycle deleted display_ids for users
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_user
-            BEFORE DELETE ON users
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('users', OLD.display_id);
-            END
-        """)
-        
-        # Trigger to recycle deleted display_ids for classrooms
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_classroom
-            BEFORE DELETE ON classrooms
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('classrooms', OLD.display_id);
-            END
-        """)
-        
-        # Trigger to recycle deleted display_ids for courses
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_course
-            BEFORE DELETE ON courses
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('courses', OLD.display_id);
-            END
-        """)
-        
-        # Trigger to recycle deleted display_ids for students
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_student
-            BEFORE DELETE ON students
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('students', OLD.display_id);
-            END
-        """)
-        
-        # Trigger to recycle deleted display_ids for exams
-        cursor.execute("""
-            CREATE TRIGGER IF NOT EXISTS before_delete_exam
-            BEFORE DELETE ON exams
-            BEGIN
-                INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                VALUES ('exams', OLD.display_id);
-            END
-        """)
-    
-    def get_next_display_id(self, table_name: str, department_id: Optional[int] = None) -> int:
-        """
-        Get the next available display_id for a table.
-        Reuses deleted IDs if available, otherwise returns max + 1.
-        For department-scoped tables, display_id is unique per department.
-        
-        Args:
-            table_name: Name of the table
-            department_id: Optional department ID for department-scoped tables
-            
-        Returns:
-            Next available display_id
-        """
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            
-            # Check for recycled IDs first
-            cursor.execute("""
-                SELECT display_id FROM deleted_ids
-                WHERE table_name = ?
-                ORDER BY display_id ASC
-                LIMIT 1
-            """, (table_name,))
-            
-            result = cursor.fetchone()
-            if result:
-                recycled_id = result[0]
-                # Remove from deleted_ids
-                cursor.execute("""
-                    DELETE FROM deleted_ids
-                    WHERE table_name = ? AND display_id = ?
-                """, (table_name, recycled_id))
-                conn.commit()
-                return recycled_id
-            
-            # No recycled ID available, get max display_id + 1
-            if department_id and table_name in ['classrooms', 'courses', 'students', 'exams']:
-                # For department-scoped tables, display_id is per department
-                cursor.execute(f"""
-                    SELECT COALESCE(MAX(display_id), 0) + 1
-                    FROM {table_name}
-                    WHERE department_id = ?
-                """, (department_id,))
-            else:
-                # For global tables (departments, users), display_id is global
-                cursor.execute(f"""
-                    SELECT COALESCE(MAX(display_id), 0) + 1
-                    FROM {table_name}
-                """)
-            
-            result = cursor.fetchone()
-            return result[0]
-        finally:
-            conn.close()
     
     def _create_default_admin(self, cursor: sqlite3.Cursor):
         """Create default admin user and departments with coordinators"""
@@ -411,11 +261,11 @@ class DatabaseManager:
         ]
         
         dept_ids = {}
-        for idx, (dept_name, dept_code) in enumerate(departments, 1):
+        for dept_name, dept_code in departments:
             cursor.execute("""
-                INSERT INTO departments (display_id, name, code)
-                VALUES (?, ?, ?)
-            """, (idx, dept_name, dept_code))
+                INSERT INTO departments (name, code)
+                VALUES (?, ?)
+            """, (dept_name, dept_code))
             dept_ids[dept_code] = cursor.lastrowid
         
         # Hash the default password
@@ -426,10 +276,9 @@ class DatabaseManager:
         
         # Create admin user (no department assignment)
         cursor.execute("""
-            INSERT INTO users (display_id, name, email, password, role, department_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (name, email, password, role, department_id)
+            VALUES (?, ?, ?, ?, ?)
         """, (
-            1,  # Admin gets display_id = 1
             DEFAULT_ADMIN["name"],
             DEFAULT_ADMIN["email"],
             hashed_password.decode('utf-8'),
@@ -446,12 +295,11 @@ class DatabaseManager:
             ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
         ]
         
-        for idx, (coord_name, coord_email, dept_code) in enumerate(coordinators, 2):
+        for coord_name, coord_email, dept_code in coordinators:
             cursor.execute("""
-                INSERT INTO users (display_id, name, email, password, role, department_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO users (name, email, password, role, department_id)
+                VALUES (?, ?, ?, ?, ?)
             """, (
-                idx,  # Coordinators get display_id 2-6
                 coord_name,
                 coord_email,
                 hashed_password.decode('utf-8'),  # Same password: admin123
@@ -465,3 +313,4 @@ class DatabaseManager:
 
 # Singleton instance
 db_manager = DatabaseManager()
+

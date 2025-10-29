@@ -85,7 +85,7 @@ class UsersView(QWidget):
     def load_users(self):
         """Load users from database"""
         query = """
-            SELECT u.id, u.name, u.email, u.role, u.created_at,
+            SELECT u.id, u.display_id, u.name, u.email, u.role, u.created_at,
                    u.department_id, d.name as department_name, d.code as department_code
             FROM users u
             LEFT JOIN departments d ON u.department_id = d.id
@@ -97,7 +97,10 @@ class UsersView(QWidget):
         self.table.setRowCount(len(users))
         
         for row, user in enumerate(users):
-            self.table.setItem(row, 0, QTableWidgetItem(str(user['id'])))
+            # Show display_id to user, but keep internal id for operations
+            self.table.setItem(row, 0, QTableWidgetItem(str(user['display_id'])))
+            # Store the internal id as hidden data
+            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, user['id'])
             self.table.setItem(row, 1, QTableWidgetItem(user['name']))
             self.table.setItem(row, 2, QTableWidgetItem(user['email']))
             
@@ -123,7 +126,8 @@ class UsersView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a user to edit")
             return
         
-        user_id = int(self.table.item(row, 0).text())
+        # Get internal id from hidden data
+        user_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
         # Get user data
         query = """
@@ -146,7 +150,8 @@ class UsersView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a user to delete")
             return
         
-        user_id = int(self.table.item(row, 0).text())
+        # Get internal id from hidden data
+        user_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         user_name = self.table.item(row, 1).text()
         user_role = self.table.item(row, 3).text()
         
@@ -165,7 +170,8 @@ class UsersView(QWidget):
         
         reply = QMessageBox.question(
             self, "Confirm Delete",
-            f"Are you sure you want to delete user '{user_name}'?",
+            f"Are you sure you want to delete user '{user_name}'?\n\n"
+            f"The ID will be reused for future entries.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -320,8 +326,15 @@ class UserDialog(QDialog):
                     QMessageBox.warning(self, "Validation Error", "Password is required for new users")
                     return
                 
-                AuthService.create_user(name, email, password, role, dept_id)
-                QMessageBox.information(self, "Success", "User created successfully!")
+                # Get next available display_id
+                display_id = db_manager.get_next_display_id('users')
+                hashed_password = AuthService.hash_password(password)
+                query = """
+                    INSERT INTO users (display_id, name, email, password, role, department_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """
+                db_manager.execute_update(query, (display_id, name, email, hashed_password, role, dept_id))
+                QMessageBox.information(self, "Success", f"User created successfully with ID: {display_id}")
             
             self.accept()
         except Exception as e:

@@ -81,10 +81,13 @@ class SeatingPlanView(QWidget):
         
         # Seating table
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels([
-            "Student No", "Name", "Classroom", "Row", "Seat"
-        ])
+        user = get_current_user()
+        # Add department column for admin
+        headers = ["Student No", "Name", "Classroom", "Row", "Seat"]
+        if user and user['role'] == 'admin':
+            headers.insert(2, "Department")
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -100,15 +103,23 @@ class SeatingPlanView(QWidget):
         if not user:
             return
         
-        query = """
+        # Build department filter
+        if user['role'] == 'admin':
+            dept_filter = ""
+            params = ()
+        else:
+            dept_filter = "WHERE e.department_id = ?"
+            params = (user['department_id'],)
+
+        query = f"""
             SELECT e.id, e.date, e.start_time, c.code, c.name
             FROM exams e
             JOIN courses c ON e.course_id = c.id
-            WHERE e.department_id = ?
+            {dept_filter}
             ORDER BY e.date, e.start_time
         """
         
-        exams = db_manager.execute_query(query, (user['department_id'],))
+        exams = db_manager.execute_query(query, params)
         
         self.exam_combo.clear()
         
@@ -132,12 +143,23 @@ class SeatingPlanView(QWidget):
         if not self.current_exam_id:
             return
         
+        user = get_current_user()
+        
+        # Re-initialize table structure based on actual logged-in user
+        headers = ["Student No", "Name", "Classroom", "Row", "Seat"]
+        if user and user['role'] == 'admin':
+            headers.insert(2, "Department")
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
+        
         query = """
             SELECT s.student_no, s.name, cl.name as classroom_name, 
-                   es.row, es.col, es.seat_position
+                   es.row, es.col, es.seat_position,
+                   d.name as department_name, d.code as department_code
             FROM exam_seating es
             JOIN students s ON es.student_id = s.id
             JOIN classrooms cl ON es.classroom_id = cl.id
+            LEFT JOIN departments d ON s.department_id = d.id
             WHERE es.exam_id = ?
             ORDER BY cl.name, es.row, es.col, es.seat_position
         """
@@ -147,15 +169,28 @@ class SeatingPlanView(QWidget):
         self.table.setRowCount(len(seating))
         
         for row, seat in enumerate(seating):
-            self.table.setItem(row, 0, QTableWidgetItem(seat['student_no']))
-            self.table.setItem(row, 1, QTableWidgetItem(seat['name']))
-            self.table.setItem(row, 2, QTableWidgetItem(seat['classroom_name']))
-            self.table.setItem(row, 3, QTableWidgetItem(f"Row {seat['row'] + 1}"))
+            col_idx = 0
+            self.table.setItem(row, col_idx, QTableWidgetItem(seat['student_no']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(seat['name']))
+            col_idx += 1
+            
+            # Add department column for admin
+            if user and user['role'] == 'admin':
+                dept_name = seat['department_name'] or 'N/A'
+                dept_code = seat['department_code'] or ''
+                self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
+                col_idx += 1
+            
+            self.table.setItem(row, col_idx, QTableWidgetItem(seat['classroom_name']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(f"Row {seat['row'] + 1}"))
+            col_idx += 1
             
             seat_label = f"Col {seat['col'] + 1}"
             if seat['seat_position'] > 1:
                 seat_label += f" ({seat['seat_position']})"
-            self.table.setItem(row, 4, QTableWidgetItem(seat_label))
+            self.table.setItem(row, col_idx, QTableWidgetItem(seat_label))
     
     def generate_seating(self):
         """Generate seating plan for selected exam"""

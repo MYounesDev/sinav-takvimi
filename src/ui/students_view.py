@@ -81,11 +81,10 @@ class StudentsView(QWidget):
         self.table = QTableWidget()
         user = get_current_user()
         # Add department column for admin
-        column_count = 6 if user and user['role'] == 'admin' else 5
         headers = ["ID", "Student No", "Name", "Class Level", "Enrolled Courses"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
-        self.table.setColumnCount(column_count)
+        self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -122,6 +121,13 @@ class StudentsView(QWidget):
         user = get_current_user()
         if not user:
             return
+        
+        # Re-initialize table structure based on actual logged-in user
+        headers = ["ID", "Student No", "Name", "Class Level", "Enrolled Courses"]
+        if user and user['role'] == 'admin':
+            headers.insert(3, "Department")
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
         
         # Build department filter
         if user['role'] == 'admin':

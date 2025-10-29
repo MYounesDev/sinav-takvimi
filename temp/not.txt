@@ -1,11 +1,3 @@
-excel format convert
-
-
-courses fix clear all botun (student courses)
-
-
-classrooms clear all botun     
-
 
 
 database delete id reset 
@@ -13,6 +5,14 @@ database delete id reset
 
 tests
 
+
+PDF seating plan
+
+selecting exam list
+
+
+
+UI
 
 
 FOR THEM -----

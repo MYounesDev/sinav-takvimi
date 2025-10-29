@@ -84,11 +84,10 @@ class ExamScheduleView(QWidget):
         self.table = QTableWidget()
         user = get_current_user()
         # Add department column for admin
-        column_count = 8 if user and user['role'] == 'admin' else 7
         headers = ["Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"]
         if user and user['role'] == 'admin':
             headers.insert(4, "Department")
-        self.table.setColumnCount(column_count)
+        self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -116,6 +115,13 @@ class ExamScheduleView(QWidget):
         user = get_current_user()
         if not user:
             return
+        
+        # Re-initialize table structure based on actual logged-in user
+        headers = ["Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"]
+        if user and user['role'] == 'admin':
+            headers.insert(4, "Department")
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
         
         # Build department filter
         if user['role'] == 'admin':
@@ -241,10 +247,13 @@ class ExamScheduleView(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
             # For admin, delete filtered or all; for coordinator, only their department
-            if user['role'] == 'admin' and hasattr(self, 'dept_filter'):
-                selected_dept_id = self.dept_filter.currentData()
-                if selected_dept_id:
-                    db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (selected_dept_id,))
+            if user['role'] == 'admin':
+                if hasattr(self, 'dept_filter'):
+                    selected_dept_id = self.dept_filter.currentData()
+                    if selected_dept_id:
+                        db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (selected_dept_id,))
+                    else:
+                        db_manager.execute_update("DELETE FROM exams")
                 else:
                     db_manager.execute_update("DELETE FROM exams")
             else:
