@@ -449,8 +449,10 @@ class ClassroomDialog(QDialog):
         cols = self.cols_input.value()
         seats_per_desk = self.seats_input.value()
         
-        # Update capacity
-        capacity = rows * cols
+        # Update capacity: (rows × cols) × seats_per_desk
+        # rows × cols = number of desks
+        # Each desk has seats_per_desk students
+        capacity = rows * cols * seats_per_desk
         self.capacity_input.setText(str(capacity))
         
         # Limit preview for performance
@@ -503,7 +505,8 @@ class ClassroomDialog(QDialog):
         rows = self.rows_input.value()
         cols = self.cols_input.value()
         seats = self.seats_input.value()
-        capacity = rows * cols
+        # Correct capacity calculation: (rows × cols) × seats_per_desk
+        capacity = rows * cols * seats
         
         if not name:
             QMessageBox.warning(self, "Doğrulama Hatası", "Derslik adı boş olamaz")

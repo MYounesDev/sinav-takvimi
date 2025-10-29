@@ -5,7 +5,7 @@ Exam Schedule View - Generate and view exam schedules
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QDialog, QFormLayout, QDateEdit, QSpinBox, QCheckBox,
-                             QMessageBox, QFrame, QGridLayout, QComboBox)
+                             QMessageBox, QFrame, QGridLayout, QComboBox, QFileDialog)
 from PyQt6.QtCore import Qt, QDate
 from datetime import datetime
 from src.database.db_manager import db_manager
@@ -194,8 +194,16 @@ class ExamScheduleView(QWidget):
         if not user:
             return
         
+        # Build department filter based on user role
+        if user['role'] == 'admin':
+            dept_filter = ""
+            params = ()
+        else:
+            dept_filter = "WHERE e.department_id = ?"
+            params = (user['department_id'],)
+        
         # Get schedule data
-        query = """
+        query = f"""
             SELECT e.date, e.start_time, c.code as course_code, c.name as course_name,
                    e.duration, 
                    (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as students,
@@ -204,12 +212,12 @@ class ExamScheduleView(QWidget):
             JOIN courses c ON e.course_id = c.id
             LEFT JOIN exam_classrooms ec ON e.id = ec.exam_id
             LEFT JOIN classrooms cl ON ec.classroom_id = cl.id
-            WHERE e.department_id = ?
+            {dept_filter}
             GROUP BY e.id
             ORDER BY e.date, e.start_time
         """
         
-        exams = db_manager.execute_query(query, (user['department_id'],))
+        exams = db_manager.execute_query(query, params)
         
         if not exams:
             QMessageBox.warning(self, "No Data", "No exam schedule to export")
@@ -230,11 +238,35 @@ class ExamScheduleView(QWidget):
         
         df = pd.DataFrame(data)
         
-        # Save to file
-        filename = f"exam_schedule_{user['department_code']}_{datetime.now().strftime('%Y%m%d')}.xlsx"
-        df.to_excel(filename, index=False)
+        # Generate default filename
+        if user['role'] == 'admin':
+            dept_code = 'all'
+        else:
+            dept_code = user.get('department_code', 'dept')
         
-        QMessageBox.information(self, "Export Successful", f"Schedule exported to {filename}")
+        default_filename = f"exam_schedule_{dept_code}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        # Open file dialog to choose save location
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Exam Schedule",
+            default_filename,
+            "Excel Files (*.xlsx);;All Files (*)"
+        )
+        
+        if not file_path:  # User cancelled
+            return
+        
+        # Ensure .xlsx extension
+        if not file_path.lower().endswith('.xlsx'):
+            file_path += '.xlsx'
+        
+        try:
+            # Save to file
+            df.to_excel(file_path, index=False)
+            QMessageBox.information(self, "Export Successful", f"Schedule exported to:\n{file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", f"Failed to export schedule:\n{str(e)}")
     
     def clear_schedule(self):
         """Clear all scheduled exams"""

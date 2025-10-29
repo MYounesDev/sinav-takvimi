@@ -103,6 +103,12 @@ class SeatingPlanView(QWidget):
         if not user:
             return
         
+        # Temporarily disconnect signal to avoid triggering during population
+        try:
+            self.exam_combo.currentIndexChanged.disconnect()
+        except:
+            pass  # Signal might not be connected yet
+        
         # Build department filter
         if user['role'] == 'admin':
             dept_filter = ""
@@ -126,6 +132,9 @@ class SeatingPlanView(QWidget):
         for exam in exams:
             display_text = f"{exam['date']} {exam['start_time']} - {exam['code']} {exam['name']}"
             self.exam_combo.addItem(display_text, exam['id'])
+        
+        # Reconnect signal
+        self.exam_combo.currentIndexChanged.connect(self.on_exam_selected)
         
         if exams:
             self.on_exam_selected(0)
@@ -274,11 +283,11 @@ class SeatingPlanView(QWidget):
             JOIN student_courses sc ON s.id = sc.student_id
             JOIN courses c ON sc.course_id = c.id
             JOIN exams e ON c.id = e.course_id
-            WHERE e.date = ? AND e.time = ? AND e.id != ?
+            WHERE e.date = ? AND e.start_time = ? AND e.id != ?
             GROUP BY s.id, s.student_no, s.name
             HAVING COUNT(DISTINCT e.id) > 1
         """
-        conflicts = list(db_manager.execute_query(conflicts_query, (exam['date'], exam['time'], self.current_exam_id)))
+        conflicts = list(db_manager.execute_query(conflicts_query, (exam['date'], exam['start_time'], self.current_exam_id)))
         
         if conflicts:
             conflict_list = "\n".join([f"  • {c['student_no']} - {c['name']}: {c['courses']}" for c in conflicts[:5]])
@@ -305,7 +314,7 @@ class SeatingPlanView(QWidget):
             "Oturma Planı Oluştur",
             f"📋 Oturma planı oluşturulacak:\n\n"
             f"Ders: {exam['course_code']} - {exam['course_name']}\n"
-            f"Tarih: {exam['date']} {exam['time']}\n"
+            f"Tarih: {exam['date']} {exam['start_time']}\n"
             f"Öğrenci Sayısı: {students_count}\n"
             f"Derslik Sayısı: {len(classrooms)}\n"
             f"Toplam Kapasite: {total_capacity}\n\n"
@@ -370,15 +379,16 @@ class SeatingPlanView(QWidget):
         
         # Get exam details for default filename
         exam = db_manager.execute_query(
-            "SELECT c.code, e.exam_date FROM exams e JOIN courses c ON e.course_id = c.id WHERE e.id = ?",
+            "SELECT c.code, e.date, e.start_time FROM exams e JOIN courses c ON e.course_id = c.id WHERE e.id = ?",
             (self.current_exam_id,)
         )
         
         default_filename = "seating_plan.pdf"
         if exam:
             course_code = exam[0]['code'].replace('/', '_').replace('\\', '_')
-            exam_date = exam[0]['exam_date'].replace(':', '-').replace(' ', '_')
-            default_filename = f"seating_plan_{course_code}_{exam_date}.pdf"
+            exam_date = exam[0]['date'].replace('-', '_')
+            exam_time = exam[0]['start_time'].replace(':', '-')
+            default_filename = f"seating_plan_{course_code}_{exam_date}_{exam_time}.pdf"
         
         # Open file dialog to choose save location
         file_path, _ = QFileDialog.getSaveFileName(
