@@ -20,21 +20,21 @@ class ExamScheduler:
         
     def load_data(self):
         """Load courses, students, and classrooms from database"""
-        # Load courses
-        query = "SELECT * FROM courses WHERE department_id = ?"
+        # Load active courses only
+        query = "SELECT * FROM courses WHERE department_id = ? AND isActive = 1"
         self.courses = list(db_manager.execute_query(query, (self.department_id,)))
         
         # Load classrooms
         query = "SELECT * FROM classrooms WHERE department_id = ? ORDER BY capacity DESC"
         self.classrooms = list(db_manager.execute_query(query, (self.department_id,)))
         
-        # Load student enrollments
+        # Load student enrollments (only for active courses)
         query = """
             SELECT s.id as student_id, c.id as course_id
             FROM students s
             JOIN student_courses sc ON s.id = sc.student_id
             JOIN courses c ON sc.course_id = c.id
-            WHERE s.department_id = ?
+            WHERE s.department_id = ? AND c.isActive = 1
         """
         enrollments = db_manager.execute_query(query, (self.department_id,))
         
@@ -226,12 +226,16 @@ class ExamScheduler:
         saved_count = 0
         
         for exam in scheduled_exams:
-            # Insert exam
+            # Get next display_id for this exam
+            display_id = db_manager.get_next_display_id('exams')
+            
+            # Insert exam with display_id
             query = """
-                INSERT INTO exams (course_id, department_id, date, start_time, duration, exam_type)
-                VALUES (?, ?, ?, ?, ?, 'final')
+                INSERT INTO exams (display_id, course_id, department_id, date, start_time, duration, exam_type)
+                VALUES (?, ?, ?, ?, ?, ?, 'final')
             """
             exam_id = db_manager.execute_update(query, (
+                display_id,
                 exam['course_id'],
                 self.department_id,
                 exam['date'],

@@ -181,6 +181,7 @@ class DatabaseManager:
                 instructor TEXT,
                 class_level INTEGER,
                 type TEXT CHECK(type IN ('mandatory', 'elective')),
+                isActive INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)

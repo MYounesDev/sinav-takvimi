@@ -4,7 +4,7 @@ Students View - Manage students and import from Excel
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
-                             QFileDialog, QMessageBox, QProgressDialog, QLineEdit, QComboBox)
+                             QFileDialog, QMessageBox, QProgressDialog, QLineEdit, QComboBox, QDialog)
 from PyQt6.QtCore import Qt
 import pandas as pd
 from src.database.db_manager import db_manager
@@ -97,6 +97,12 @@ class StudentsView(QWidget):
         # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
+        
+        view_details_btn = QPushButton("👁️ View Details")
+        view_details_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
+        view_details_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        view_details_btn.clicked.connect(self.view_student_details)
+        action_bar.addWidget(view_details_btn)
         
         delete_btn = QPushButton("🗑️ Delete Selected")
         delete_btn.setStyleSheet(Styles.DANGER_BUTTON)
@@ -458,5 +464,117 @@ class StudentsView(QWidget):
             self.table.setRowCount(0)
             self.all_students = []
             self.load_students()
+    
+    def view_student_details(self):
+        """Show detailed view of selected student with enrolled courses"""
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "No Selection", "Please select a student to view details")
+            return
+        
+        # Get real ID from UserRole
+        student_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        
+        # Get student details
+        student_query = """
+            SELECT s.id, s.display_id, s.student_no, s.name, s.class_level,
+                   d.name as department_name, d.code as department_code
+            FROM students s
+            LEFT JOIN departments d ON s.department_id = d.id
+            WHERE s.id = ?
+        """
+        student = db_manager.execute_query(student_query, (student_id,))
+        if not student:
+            QMessageBox.warning(self, "Error", "Could not load student data")
+            return
+        student = student[0]
+        
+        # Get enrolled courses
+        courses_query = """
+            SELECT c.display_id, c.code, c.name, c.instructor, c.class_level, c.type,
+                   CASE WHEN c.isActive = 1 THEN '✅' ELSE '❌' END as status
+            FROM courses c
+            INNER JOIN student_courses sc ON c.id = sc.course_id
+            WHERE sc.student_id = ?
+            ORDER BY c.code
+        """
+        courses = list(db_manager.execute_query(courses_query, (student_id,)))
+        
+        # Show dialog
+        dialog = StudentDetailsDialog(self, student, courses)
+        dialog.exec()
+
+
+class StudentDetailsDialog(QDialog):
+    """Dialog to show student details and enrolled courses"""
+    
+    def __init__(self, parent, student, courses):
+        super().__init__(parent)
+        self.student = student
+        self.courses = courses
+        self.init_ui()
+    
+    def init_ui(self):
+        """Initialize the UI"""
+        self.setWindowTitle(f"Student Details - {self.student['student_no']}")
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(500)
+        
+        layout = QVBoxLayout(self)
+        layout.setSpacing(20)
+        
+        # Student info
+        info_label = QLabel("Student Information")
+        info_label.setStyleSheet(Styles.SUBTITLE_LABEL)
+        layout.addWidget(info_label)
+        
+        info_text = f"""
+        <b>ID:</b> {self.student['display_id']}<br>
+        <b>Student No:</b> {self.student['student_no']}<br>
+        <b>Name:</b> {self.student['name']}<br>
+        <b>Department:</b> {self.student['department_name']} ({self.student['department_code']})<br>
+        <b>Class Level:</b> {self.student['class_level'] or 'N/A'}<br>
+        <b>Total Courses:</b> {len(self.courses)}
+        """
+        
+        info_display = QLabel(info_text)
+        info_display.setStyleSheet("padding: 10px; background-color: #f0f0f0; border-radius: 5px;")
+        layout.addWidget(info_display)
+        
+        # Courses table
+        courses_label = QLabel("Enrolled Courses")
+        courses_label.setStyleSheet(Styles.SUBTITLE_LABEL)
+        layout.addWidget(courses_label)
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels(["ID", "Code", "Name", "Instructor", "Class Level", "Type", "Status"])
+        self.table.setStyleSheet(Styles.TABLE_WIDGET)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)
+        
+        # Populate courses
+        self.table.setSortingEnabled(False)
+        self.table.setRowCount(len(self.courses))
+        for row, course in enumerate(self.courses):
+            self.table.setItem(row, 0, QTableWidgetItem(str(course['display_id'])))
+            self.table.setItem(row, 1, QTableWidgetItem(course['code']))
+            self.table.setItem(row, 2, QTableWidgetItem(course['name']))
+            self.table.setItem(row, 3, QTableWidgetItem(course['instructor'] or ''))
+            self.table.setItem(row, 4, QTableWidgetItem(str(course['class_level']) if course['class_level'] else ""))
+            self.table.setItem(row, 5, QTableWidgetItem(course['type'] or ''))
+            self.table.setItem(row, 6, QTableWidgetItem(course['status']))
+        self.table.setSortingEnabled(True)
+        
+        layout.addWidget(self.table)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
+        close_btn.clicked.connect(self.accept)
+        layout.addWidget(close_btn)
+
 
 
