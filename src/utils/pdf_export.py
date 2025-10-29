@@ -117,12 +117,13 @@ def create_classroom_layout_drawing(classroom_data: dict, width: float = 7*inch,
     return d
 
 
-def export_seating_plan_pdf(exam_id: int) -> str:
+def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     """
     Export seating plan to PDF with visual classroom layouts
     
     Args:
         exam_id: Exam ID
+        output_path: Optional output file path. If None, generates default filename
         
     Returns:
         Generated filename
@@ -154,8 +155,11 @@ def export_seating_plan_pdf(exam_id: int) -> str:
     if not classrooms:
         raise ValueError("No classrooms assigned to this exam")
     
-    # Generate filename
-    filename = f"seating_plan_{exam['course_code']}_{exam['date'].replace('-', '')}.pdf"
+    # Generate filename if not provided
+    if output_path is None:
+        filename = f"seating_plan_{exam['course_code']}_{exam['date'].replace('-', '')}.pdf"
+    else:
+        filename = output_path
     
     # Create PDF
     doc = SimpleDocTemplate(filename, pagesize=landscape(A4))

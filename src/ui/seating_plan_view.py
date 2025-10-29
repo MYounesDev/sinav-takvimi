@@ -5,7 +5,7 @@ Seating Plan View - Generate and visualize seating arrangements
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QComboBox, QMessageBox, QDialog, QGridLayout, QFrame,
-                             QScrollArea)
+                             QScrollArea, QFileDialog)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from src.database.db_manager import db_manager
@@ -198,20 +198,145 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Exam", "Please select an exam first")
             return
         
+        # Validate exam exists
+        exam_query = """
+            SELECT e.*, c.code as course_code, c.name as course_name
+            FROM exams e
+            JOIN courses c ON e.course_id = c.id
+            WHERE e.id = ?
+        """
+        exam_result = db_manager.execute_query(exam_query, (self.current_exam_id,))
+        
+        if not exam_result:
+            QMessageBox.critical(self, "Error", "❌ Seçilen sınav bulunamadı!")
+            return
+        
+        exam = exam_result[0]
+        
+        # Check if students are enrolled
+        students_query = """
+            SELECT COUNT(*) as count
+            FROM students s
+            JOIN student_courses sc ON s.id = sc.student_id
+            WHERE sc.course_id = ?
+        """
+        students_count_result = db_manager.execute_query(students_query, (exam['course_id'],))
+        students_count = students_count_result[0]['count'] if students_count_result else 0
+        
+        if students_count == 0:
+            QMessageBox.warning(
+                self, 
+                "Uyarı", 
+                f"❌ Bu derse kayıtlı öğrenci bulunamadı!\n\nDers: {exam['course_code']} - {exam['course_name']}"
+            )
+            return
+        
+        # Check if classrooms are assigned
+        classrooms_query = """
+            SELECT cl.*, 
+                   (cl.rows * cl.cols * cl.seats_per_desk) as capacity
+            FROM classrooms cl
+            JOIN exam_classrooms ec ON cl.id = ec.classroom_id
+            WHERE ec.exam_id = ?
+        """
+        classrooms = list(db_manager.execute_query(classrooms_query, (self.current_exam_id,)))
+        
+        if not classrooms:
+            QMessageBox.warning(
+                self,
+                "Uyarı",
+                "❌ Derslik bulunamadı!\n\nBu sınav için henüz derslik atanmamış."
+            )
+            return
+        
+        # Calculate total classroom capacity
+        total_capacity = sum(cl['capacity'] for cl in classrooms)
+        
+        if total_capacity < students_count:
+            classroom_list = "\n".join([f"  • {cl['name']}: {cl['capacity']} kişi" for cl in classrooms])
+            QMessageBox.critical(
+                self,
+                "Kapasite Yetersiz",
+                f"❌ Sınıf kapasitesi yetersiz!\n\n"
+                f"Toplam Öğrenci: {students_count}\n"
+                f"Toplam Kapasite: {total_capacity}\n"
+                f"Eksik: {students_count - total_capacity} kişi\n\n"
+                f"Atanmış Derslikler:\n{classroom_list}\n\n"
+                f"Lütfen daha fazla derslik ekleyin veya daha büyük derslikler seçin."
+            )
+            return
+        
+        # Check for student schedule conflicts (students having exams at same time)
+        conflicts_query = """
+            SELECT s.student_no, s.name, 
+                   GROUP_CONCAT(c.code || ' - ' || c.name, ', ') as courses
+            FROM students s
+            JOIN student_courses sc ON s.id = sc.student_id
+            JOIN courses c ON sc.course_id = c.id
+            JOIN exams e ON c.id = e.course_id
+            WHERE e.date = ? AND e.time = ? AND e.id != ?
+            GROUP BY s.id, s.student_no, s.name
+            HAVING COUNT(DISTINCT e.id) > 1
+        """
+        conflicts = list(db_manager.execute_query(conflicts_query, (exam['date'], exam['time'], self.current_exam_id)))
+        
+        if conflicts:
+            conflict_list = "\n".join([f"  • {c['student_no']} - {c['name']}: {c['courses']}" for c in conflicts[:5]])
+            warning_msg = f"⚠️ Öğrencilerin dersleri çakışıyor!\n\n"
+            warning_msg += f"{len(conflicts)} öğrencinin bu sınavla aynı zamanda başka sınavı var:\n\n"
+            warning_msg += conflict_list
+            if len(conflicts) > 5:
+                warning_msg += f"\n  ... ve {len(conflicts) - 5} öğrenci daha"
+            warning_msg += "\n\nDevam etmek istiyor musunuz?"
+            
+            reply = QMessageBox.question(
+                self,
+                "Çakışma Uyarısı",
+                warning_msg,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        
+        # Final confirmation
         reply = QMessageBox.question(
-            self, "Confirm Generation",
-            "This will regenerate the seating plan. Continue?",
+            self, 
+            "Oturma Planı Oluştur",
+            f"📋 Oturma planı oluşturulacak:\n\n"
+            f"Ders: {exam['course_code']} - {exam['course_name']}\n"
+            f"Tarih: {exam['date']} {exam['time']}\n"
+            f"Öğrenci Sayısı: {students_count}\n"
+            f"Derslik Sayısı: {len(classrooms)}\n"
+            f"Toplam Kapasite: {total_capacity}\n\n"
+            f"Bu işlem mevcut oturma planını silecektir. Devam edilsin mi?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            generator = SeatingPlanGenerator(self.current_exam_id)
-            
-            if generator.generate_seating():
-                QMessageBox.information(self, "Success", "Seating plan generated successfully!")
-                self.load_seating()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to generate seating plan")
+            try:
+                generator = SeatingPlanGenerator(self.current_exam_id)
+                
+                if generator.generate_seating():
+                    QMessageBox.information(
+                        self, 
+                        "Başarılı", 
+                        f"✅ Oturma planı başarıyla oluşturuldu!\n\n"
+                        f"{students_count} öğrenci {len(classrooms)} dersliğe yerleştirildi."
+                    )
+                    self.load_seating()
+                else:
+                    QMessageBox.critical(
+                        self, 
+                        "Hata", 
+                        "❌ Oturma planı oluşturulamadı!\n\nLütfen sınav bilgilerini kontrol edin."
+                    )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Hata",
+                    f"❌ Oturma planı oluşturulurken hata oluştu:\n\n{str(e)}"
+                )
     
     def view_layout(self):
         """View classroom layout with seating"""
@@ -243,9 +368,36 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Exam", "Please select an exam first")
             return
         
+        # Get exam details for default filename
+        exam = db_manager.execute_query(
+            "SELECT c.code, e.exam_date FROM exams e JOIN courses c ON e.course_id = c.id WHERE e.id = ?",
+            (self.current_exam_id,)
+        )
+        
+        default_filename = "seating_plan.pdf"
+        if exam:
+            course_code = exam[0]['code'].replace('/', '_').replace('\\', '_')
+            exam_date = exam[0]['exam_date'].replace(':', '-').replace(' ', '_')
+            default_filename = f"seating_plan_{course_code}_{exam_date}.pdf"
+        
+        # Open file dialog to choose save location
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Seating Plan PDF",
+            default_filename,
+            "PDF Files (*.pdf);;All Files (*)"
+        )
+        
+        if not file_path:  # User cancelled
+            return
+        
+        # Ensure .pdf extension
+        if not file_path.lower().endswith('.pdf'):
+            file_path += '.pdf'
+        
         try:
-            filename = export_seating_plan_pdf(self.current_exam_id)
-            QMessageBox.information(self, "Success", f"Seating plan exported to {filename}")
+            filename = export_seating_plan_pdf(self.current_exam_id, file_path)
+            QMessageBox.information(self, "Success", f"Seating plan exported to:\n{filename}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to export PDF:\n{str(e)}")
 

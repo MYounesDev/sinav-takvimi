@@ -538,7 +538,7 @@ class StudentDetailsDialog(QDialog):
         """
         
         info_display = QLabel(info_text)
-        info_display.setStyleSheet("padding: 10px; background-color: #f0f0f0; border-radius: 5px;")
+        info_display.setStyleSheet("padding: 10px; background-color: #f0f0f0; border-radius: 5px; color: #000000;")
         layout.addWidget(info_display)
         
         # Courses table
