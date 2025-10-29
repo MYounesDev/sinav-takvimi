@@ -92,7 +92,8 @@ class ExamScheduleView(QWidget):
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  # Allow double-click editing
+        self.table.itemChanged.connect(self.on_item_changed)  # Connect to handle changes
         layout.addWidget(self.table)
         
         # Clear button
@@ -156,24 +157,46 @@ class ExamScheduleView(QWidget):
         exams = db_manager.execute_query(query, params)
         user = get_current_user()  # Refresh user for column calculation
         
+        # Temporarily disconnect signal to avoid triggering during population
+        try:
+            self.table.itemChanged.disconnect(self.on_item_changed)
+        except:
+            pass  # Signal might not be connected yet
+        
         self.table.setRowCount(len(exams))
         
         for row, exam in enumerate(exams):
             col_idx = 0
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam['date']))
+            
+            # Store exam ID in first column's UserRole
+            date_item = QTableWidgetItem(exam['date'])
+            date_item.setData(Qt.ItemDataRole.UserRole, exam['id'])  # Store exam ID
+            date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # Not editable
+            self.table.setItem(row, col_idx, date_item)
             col_idx += 1
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam['start_time']))
+            
+            time_item = QTableWidgetItem(exam['start_time'])
+            time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, time_item)
             col_idx += 1
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam['course_code']))
+            
+            code_item = QTableWidgetItem(exam['course_code'])
+            code_item.setFlags(code_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, code_item)
             col_idx += 1
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam['course_name']))
+            
+            name_item = QTableWidgetItem(exam['course_name'])
+            name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, name_item)
             col_idx += 1
             
             # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = exam['department_name'] or 'N/A'
                 dept_code = exam['department_code'] or ''
-                self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
+                dept_item = QTableWidgetItem(f"{dept_name} ({dept_code})")
+                dept_item.setFlags(dept_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.table.setItem(row, col_idx, dept_item)
                 col_idx += 1
             
             # Exam type with proper display name
@@ -183,14 +206,99 @@ class ExamScheduleView(QWidget):
                 'midterm': 'Midterm Exam',
                 'resit': 'Resit Exam'
             }.get(exam_type, 'Final Exam')
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam_type_display))
+            type_item = QTableWidgetItem(exam_type_display)
+            type_item.setFlags(type_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, type_item)
             col_idx += 1
             
-            self.table.setItem(row, col_idx, QTableWidgetItem(f"{exam['duration']} min"))
+            # Duration - EDITABLE (store as integer for easy editing)
+            duration_item = QTableWidgetItem(str(exam['duration']))
+            duration_item.setToolTip("Double-click to edit duration (minutes)")
+            self.table.setItem(row, col_idx, duration_item)
             col_idx += 1
-            self.table.setItem(row, col_idx, QTableWidgetItem(str(exam['student_count'])))
+            
+            student_item = QTableWidgetItem(str(exam['student_count']))
+            student_item.setFlags(student_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, student_item)
             col_idx += 1
-            self.table.setItem(row, col_idx, QTableWidgetItem(exam['classroom_names'] or "N/A"))
+            
+            classroom_item = QTableWidgetItem(exam['classroom_names'] or "N/A")
+            classroom_item.setFlags(classroom_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, col_idx, classroom_item)
+        
+        # Reconnect signal
+        self.table.itemChanged.connect(self.on_item_changed)
+    
+    def on_item_changed(self, item):
+        """Handle when a table item is changed (for duration editing)"""
+        user = get_current_user()
+        
+        # Determine which column is Duration based on user role
+        if user and user['role'] == 'admin':
+            duration_col = 6  # Date, Time, Code, Name, Department, Type, Duration
+        else:
+            duration_col = 5  # Date, Time, Code, Name, Type, Duration
+        
+        # Only process Duration column changes
+        if item.column() != duration_col:
+            return
+        
+        row = item.row()
+        new_duration_text = item.text().strip()
+        
+        # Validate input is a positive integer
+        try:
+            new_duration = int(new_duration_text)
+            if new_duration < 30 or new_duration > 180:
+                raise ValueError("Duration must be between 30 and 180 minutes")
+        except ValueError as e:
+            # Disconnect signal before showing message to prevent triggering during reload
+            try:
+                self.table.itemChanged.disconnect(self.on_item_changed)
+            except:
+                pass
+            
+            QMessageBox.warning(
+                self,
+                "Invalid Duration",
+                f"Please enter a valid duration (30-180 minutes):\n{str(e)}"
+            )
+            
+            # Reload to reset the value
+            self.load_schedule()
+            return
+        
+        # Get exam ID from the first column
+        exam_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        
+        try:
+            # Disconnect signal during update to prevent recursive calls
+            try:
+                self.table.itemChanged.disconnect(self.on_item_changed)
+            except:
+                pass
+            
+            # Update duration in database
+            query = "UPDATE exams SET duration = ? WHERE id = ?"
+            db_manager.execute_update(query, (new_duration, exam_id))
+            
+            # Reconnect signal
+            self.table.itemChanged.connect(self.on_item_changed)
+            
+            # Show success message briefly
+            QMessageBox.information(
+                self,
+                "Duration Updated",
+                f"Exam duration updated to {new_duration} minutes"
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Update Failed",
+                f"Failed to update duration:\n{str(e)}"
+            )
+            # Reload to reset the value
+            self.load_schedule()
     
     def show_schedule_dialog(self):
         """Show dialog to configure and generate schedule"""
