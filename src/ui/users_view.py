@@ -16,6 +16,7 @@ class UsersView(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.all_users = []  # Store all users for filtering
         self.init_ui()
         
     def init_ui(self):
@@ -49,6 +50,20 @@ class UsersView(QWidget):
         
         layout.addLayout(top_bar)
         
+        # Search bar
+        search_bar = QHBoxLayout()
+        search_label = QLabel("🔍 Search:")
+        search_label.setStyleSheet(Styles.NORMAL_LABEL)
+        search_bar.addWidget(search_label)
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search by ID, Name, or Email...")
+        self.search_input.setStyleSheet(Styles.LINE_EDIT)
+        self.search_input.textChanged.connect(self.filter_users)
+        search_bar.addWidget(self.search_input)
+        
+        layout.addLayout(search_bar)
+        
         # Table
         self.table = QTableWidget()
         self.table.setColumnCount(6)
@@ -59,6 +74,7 @@ class UsersView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
         # Action buttons
@@ -93,14 +109,22 @@ class UsersView(QWidget):
         """
         
         users = db_manager.execute_query(query)
-        
+        self.all_users = users  # Store for filtering
+        self.populate_table(users)
+    
+    def populate_table(self, users):
+        """Populate table with user data"""
+        # Disable sorting while populating
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(users))
         
         for row, user in enumerate(users):
             # Show display_id to user, but keep internal id for operations
-            self.table.setItem(row, 0, QTableWidgetItem(str(user['display_id'])))
-            # Store the internal id as hidden data
-            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, user['id'])
+            id_item = QTableWidgetItem()
+            id_item.setData(Qt.ItemDataRole.DisplayRole, int(user['display_id']))
+            id_item.setData(Qt.ItemDataRole.UserRole, user['id'])  # Store real ID
+            self.table.setItem(row, 0, id_item)
+            
             self.table.setItem(row, 1, QTableWidgetItem(user['name']))
             self.table.setItem(row, 2, QTableWidgetItem(user['email']))
             
@@ -112,6 +136,29 @@ class UsersView(QWidget):
             
             created = user['created_at'] or "N/A"
             self.table.setItem(row, 5, QTableWidgetItem(str(created)))
+        
+        # Re-enable sorting
+        self.table.setSortingEnabled(True)
+    
+    def filter_users(self):
+        """Filter users based on search text"""
+        search_text = self.search_input.text().lower()
+        
+        if not search_text:
+            # Show all users
+            self.populate_table(self.all_users)
+            return
+        
+        # Filter users
+        filtered = []
+        for user in self.all_users:
+            # Search in display_id, name, and email
+            if (str(user['display_id']).lower().find(search_text) != -1 or
+                user['name'].lower().find(search_text) != -1 or
+                user['email'].lower().find(search_text) != -1):
+                filtered.append(user)
+        
+        self.populate_table(filtered)
     
     def add_user(self):
         """Open dialog to add new user"""

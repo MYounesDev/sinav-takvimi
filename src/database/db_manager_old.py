@@ -290,9 +290,7 @@ class DatabaseManager:
         coordinators = [
             ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
             ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
-            ('Elektronik Koordinatörü', 'elektronik@gmail.com', 'ELEKTRONİK'),
-            ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
+            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK')
         ]
         
         for coord_name, coord_email, dept_code in coordinators:

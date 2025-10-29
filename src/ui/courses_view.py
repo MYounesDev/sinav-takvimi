@@ -4,7 +4,7 @@ Courses View - Manage courses and import from Excel
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
-                             QFileDialog, QMessageBox, QProgressDialog, QComboBox)
+                             QFileDialog, QMessageBox, QProgressDialog, QComboBox, QLineEdit)
 from PyQt6.QtCore import Qt
 import pandas as pd
 import re
@@ -19,6 +19,7 @@ class CoursesView(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.all_courses = []  # Store all courses for filtering
         self.init_ui()
         
     def init_ui(self):
@@ -71,6 +72,20 @@ class CoursesView(QWidget):
         
         layout.addLayout(top_bar)
         
+        # Search bar
+        search_bar = QHBoxLayout()
+        search_label = QLabel("🔍 Search:")
+        search_label.setStyleSheet(Styles.NORMAL_LABEL)
+        search_bar.addWidget(search_label)
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search by ID, Code, Name, or Instructor...")
+        self.search_input.setStyleSheet(Styles.LINE_EDIT)
+        self.search_input.textChanged.connect(self.filter_courses)
+        search_bar.addWidget(self.search_input)
+        
+        layout.addLayout(search_bar)
+        
         # Table
         self.table = QTableWidget()
         user = get_current_user()
@@ -84,6 +99,7 @@ class CoursesView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
         # Delete button
@@ -133,23 +149,36 @@ class CoursesView(QWidget):
             dept_filter = f"WHERE c.department_id = {user['department_id']}"
         
         query = f"""
-            SELECT c.id, c.code, c.name, c.instructor, c.class_level, c.type,
+            SELECT c.id, c.display_id, c.code, c.name, c.instructor, c.class_level, c.type,
                    c.department_id, d.name as department_name, d.code as department_code
             FROM courses c
             LEFT JOIN departments d ON c.department_id = d.id
             {dept_filter}
-            ORDER BY c.code
+            ORDER BY c.display_id
         """
         
         courses = db_manager.execute_query(query)
-        user = get_current_user()  # Refresh user for column calculation
+        self.all_courses = courses  # Store for filtering
+        self.populate_table(courses)
+    
+    def populate_table(self, courses):
+        """Populate table with course data"""
+        user = get_current_user()
         
+        # Disable sorting while populating
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(courses))
         
         for row, course in enumerate(courses):
             col_idx = 0
-            self.table.setItem(row, col_idx, QTableWidgetItem(str(course['id'])))
+            
+            # Display display_id but store real id in UserRole
+            id_item = QTableWidgetItem()
+            id_item.setData(Qt.ItemDataRole.DisplayRole, int(course['display_id']))
+            id_item.setData(Qt.ItemDataRole.UserRole, course['id'])  # Store real ID
+            self.table.setItem(row, col_idx, id_item)
             col_idx += 1
+            
             self.table.setItem(row, col_idx, QTableWidgetItem(course['code']))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(course['name']))
@@ -167,6 +196,30 @@ class CoursesView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(str(course['class_level']) if course['class_level'] else ""))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(course['type'] or ""))
+        
+        # Re-enable sorting
+        self.table.setSortingEnabled(True)
+    
+    def filter_courses(self):
+        """Filter courses based on search text"""
+        search_text = self.search_input.text().lower()
+        
+        if not search_text:
+            # Show all courses
+            self.populate_table(self.all_courses)
+            return
+        
+        # Filter courses
+        filtered = []
+        for course in self.all_courses:
+            # Search in display_id, code, name, and instructor
+            if (str(course['display_id']).lower().find(search_text) != -1 or
+                course['code'].lower().find(search_text) != -1 or
+                course['name'].lower().find(search_text) != -1 or
+                (course['instructor'] and course['instructor'].lower().find(search_text) != -1)):
+                filtered.append(course)
+        
+        self.populate_table(filtered)
     
     def _normalize_turkish_courses(self, df):
         """Normalize Turkish course format to standard format
@@ -372,7 +425,7 @@ class CoursesView(QWidget):
                         ))
                     else:
                         # Insert new course with display_id
-                        display_id = db_manager.get_next_display_id('courses', selected_dept_id)
+                        display_id = db_manager.get_next_display_id('courses')
                         query = """
                             INSERT INTO courses (display_id, department_id, code, name, instructor, class_level, type)
                             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -410,7 +463,8 @@ class CoursesView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a course to delete")
             return
         
-        course_id = int(self.table.item(row, 0).text())
+        # Get real ID from UserRole
+        course_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         course_name = self.table.item(row, 2).text()
         
         reply = QMessageBox.question(

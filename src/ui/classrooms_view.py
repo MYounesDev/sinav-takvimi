@@ -19,6 +19,7 @@ class ClassroomsView(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.all_classrooms = []  # Store all classrooms for filtering
         self.init_ui()
         
     def init_ui(self):
@@ -71,6 +72,20 @@ class ClassroomsView(QWidget):
         
         layout.addLayout(top_bar)
         
+        # Search bar
+        search_bar = QHBoxLayout()
+        search_label = QLabel("🔍 Search:")
+        search_label.setStyleSheet(Styles.NORMAL_LABEL)
+        search_bar.addWidget(search_label)
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search by ID, Code, or Name...")
+        self.search_input.setStyleSheet(Styles.LINE_EDIT)
+        self.search_input.textChanged.connect(self.filter_classrooms)
+        search_bar.addWidget(self.search_input)
+        
+        layout.addLayout(search_bar)
+        
         # Table
         self.table = QTableWidget()
         user = get_current_user()
@@ -84,6 +99,7 @@ class ClassroomsView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
         # Action buttons
@@ -139,23 +155,36 @@ class ClassroomsView(QWidget):
             dept_filter = f"WHERE c.department_id = {user['department_id']}"
         
         query = f"""
-            SELECT c.id, c.code, c.name, c.capacity, c.rows, c.cols, c.seats_per_desk,
+            SELECT c.id, c.display_id, c.code, c.name, c.capacity, c.rows, c.cols, c.seats_per_desk,
                    c.department_id, d.name as department_name, d.code as department_code
             FROM classrooms c
             LEFT JOIN departments d ON c.department_id = d.id
             {dept_filter}
-            ORDER BY c.code
+            ORDER BY c.display_id
         """
         
         classrooms = db_manager.execute_query(query)
-        user = get_current_user()  # Refresh user for column calculation
+        self.all_classrooms = classrooms  # Store for filtering
+        self.populate_table(classrooms)
+    
+    def populate_table(self, classrooms):
+        """Populate table with classroom data"""
+        user = get_current_user()
         
+        # Disable sorting while populating
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(classrooms))
         
         for row, classroom in enumerate(classrooms):
             col_idx = 0
-            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['id'])))
+            
+            # Display display_id but store real id in UserRole
+            id_item = QTableWidgetItem()
+            id_item.setData(Qt.ItemDataRole.DisplayRole, int(classroom['display_id']))
+            id_item.setData(Qt.ItemDataRole.UserRole, classroom['id'])  # Store real ID
+            self.table.setItem(row, col_idx, id_item)
             col_idx += 1
+            
             self.table.setItem(row, col_idx, QTableWidgetItem(classroom['code']))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(classroom['name']))
@@ -175,6 +204,29 @@ class ClassroomsView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['cols'])))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['seats_per_desk'])))
+        
+        # Re-enable sorting
+        self.table.setSortingEnabled(True)
+    
+    def filter_classrooms(self):
+        """Filter classrooms based on search text"""
+        search_text = self.search_input.text().lower()
+        
+        if not search_text:
+            # Show all classrooms
+            self.populate_table(self.all_classrooms)
+            return
+        
+        # Filter classrooms
+        filtered = []
+        for classroom in self.all_classrooms:
+            # Search in display_id, code, and name
+            if (str(classroom['display_id']).lower().find(search_text) != -1 or
+                classroom['code'].lower().find(search_text) != -1 or
+                classroom['name'].lower().find(search_text) != -1):
+                filtered.append(classroom)
+        
+        self.populate_table(filtered)
     
     def add_classroom(self):
         """Open dialog to add new classroom"""
@@ -189,7 +241,8 @@ class ClassroomsView(QWidget):
             QMessageBox.warning(self, "Seçim Yok", "Lütfen düzenlemek için bir derslik seçin")
             return
         
-        classroom_id = int(self.table.item(row, 0).text())
+        # Get real ID from UserRole
+        classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
         # Get classroom data
         query = "SELECT * FROM classrooms WHERE id = ?"
@@ -207,7 +260,8 @@ class ClassroomsView(QWidget):
             QMessageBox.warning(self, "Seçim Yok", "Lütfen silmek için bir derslik seçin")
             return
         
-        classroom_id = int(self.table.item(row, 0).text())
+        # Get real ID from UserRole
+        classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         classroom_name = self.table.item(row, 2).text()
         
         reply = QMessageBox.question(
@@ -476,7 +530,7 @@ class ClassroomDialog(QDialog):
                 db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats, self.classroom_data['id']))
                 QMessageBox.information(self, "Başarılı", "Derslik başarıyla güncellendi!")
             else:
-                display_id = db_manager.get_next_display_id('classrooms', dept_id)
+                display_id = db_manager.get_next_display_id('classrooms')
                 query = """
                     INSERT INTO classrooms (display_id, department_id, code, name, capacity, rows, cols, seats_per_desk)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)

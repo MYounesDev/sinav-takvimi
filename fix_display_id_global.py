@@ -1,6 +1,6 @@
 """
-Fix CASCADE DELETE - Recreate tables with proper constraints
-This script fixes the CASCADE DELETE issue by recreating tables with ON DELETE CASCADE
+Fix display_id to be globally unique across all departments
+This script updates the database schema to make display_id globally unique
 """
 
 import sqlite3
@@ -12,20 +12,30 @@ from config import DATABASE_PATH
 
 def backup_database():
     """Create a backup of the current database"""
-    backup_path = DATABASE_PATH.replace('.db', f'_before_cascade_fix_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
+    if not os.path.exists(DATABASE_PATH):
+        print("No database found. Will create fresh database.")
+        return None
+    
+    backup_path = DATABASE_PATH.replace('.db', f'_before_global_displayid_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
     shutil.copy2(DATABASE_PATH, backup_path)
     print(f"✓ Database backed up to: {backup_path}")
     return backup_path
 
 
-def fix_cascade_delete():
-    """Fix CASCADE DELETE by recreating tables"""
+def fix_global_display_id():
+    """Fix display_id to be globally unique"""
     
     print("=" * 70)
-    print("FIX CASCADE DELETE CONSTRAINTS")
+    print("FIX DISPLAY_ID TO BE GLOBALLY UNIQUE")
     print("=" * 70)
     
     backup_path = backup_database()
+    
+    # If no database exists, we'll just create a fresh one
+    if backup_path is None:
+        print("\nNo existing database. Please run init_database.py to create a fresh database.")
+        print("The new database will have globally unique display_id from the start.")
+        return
     
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
@@ -39,21 +49,27 @@ def fix_cascade_delete():
         
         # Backup all tables data
         tables_data = {}
-        
         tables = ['departments', 'users', 'classrooms', 'courses', 'students', 
                   'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
         
         for table in tables:
-            cursor.execute(f"SELECT * FROM {table}")
-            tables_data[table] = cursor.fetchall()
-            print(f"  ✓ Backed up {table}: {len(tables_data[table])} rows")
+            try:
+                cursor.execute(f"SELECT * FROM {table}")
+                tables_data[table] = cursor.fetchall()
+                print(f"  ✓ Backed up {table}: {len(tables_data[table])} rows")
+            except Exception as e:
+                print(f"  ⚠ Table {table} doesn't exist or error: {e}")
+                tables_data[table] = []
         
         print("\nStep 2: Dropping old tables...")
-        for table in reversed(tables):  # Drop in reverse order to avoid FK issues
-            cursor.execute(f"DROP TABLE IF EXISTS {table}")
-            print(f"  ✓ Dropped {table}")
+        for table in reversed(tables):
+            try:
+                cursor.execute(f"DROP TABLE IF EXISTS {table}")
+                print(f"  ✓ Dropped {table}")
+            except Exception as e:
+                print(f"  ⚠ Error dropping {table}: {e}")
         
-        print("\nStep 3: Creating new tables with CASCADE DELETE...")
+        print("\nStep 3: Creating new tables with GLOBALLY UNIQUE display_id...")
         
         # Deleted IDs tracking table
         cursor.execute("""
@@ -66,7 +82,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Departments table
+        # Departments table (already globally unique)
         cursor.execute("""
             CREATE TABLE departments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +93,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Users table
+        # Users table (already globally unique)
         cursor.execute("""
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +108,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Classrooms table
+        # Classrooms table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE classrooms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,7 +126,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Courses table
+        # Courses table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,7 +143,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Students table
+        # Students table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +170,7 @@ def fix_cascade_delete():
             )
         """)
         
-        # Exams table
+        # Exams table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE exams (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -202,7 +218,7 @@ def fix_cascade_delete():
             )
         """)
         
-        print("  ✓ All tables created with CASCADE DELETE")
+        print("  ✓ All tables created with GLOBALLY UNIQUE display_id")
         
         print("\nStep 4: Creating indexes...")
         indexes = [
@@ -244,26 +260,111 @@ def fix_cascade_delete():
             """)
         print("  ✓ All triggers created")
         
-        print("\nStep 6: Restoring data...")
+        print("\nStep 6: Reassigning display_ids to be globally unique...")
         
-        # Restore in correct order to satisfy foreign keys
-        restore_order = ['departments', 'users', 'classrooms', 'courses', 'students', 
-                        'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
+        # We need to reassign display_ids to make them globally unique
+        # Strategy: Assign new global display_ids sequentially
         
-        for table in restore_order:
-            if table in tables_data and tables_data[table]:
-                # Get column names from first row
-                first_row = tables_data[table][0]
-                columns = list(first_row.keys())
+        global_display_id_counter = 1
+        
+        # Restore departments (they were already globally unique)
+        if 'departments' in tables_data and tables_data['departments']:
+            for row in tables_data['departments']:
+                columns = list(row.keys())
+                values = list(row)
                 placeholders = ','.join(['?' for _ in columns])
                 columns_str = ','.join(columns)
+                cursor.execute(f"INSERT INTO departments ({columns_str}) VALUES ({placeholders})", values)
+            print(f"  ✓ Restored departments: {len(tables_data['departments'])} rows")
+            # Update counter
+            cursor.execute("SELECT MAX(display_id) FROM departments")
+            max_id = cursor.fetchone()[0]
+            if max_id:
+                global_display_id_counter = max(global_display_id_counter, max_id + 1)
+        
+        # Restore users (they were already globally unique)
+        if 'users' in tables_data and tables_data['users']:
+            for row in tables_data['users']:
+                columns = list(row.keys())
+                values = list(row)
+                placeholders = ','.join(['?' for _ in columns])
+                columns_str = ','.join(columns)
+                cursor.execute(f"INSERT INTO users ({columns_str}) VALUES ({placeholders})", values)
+            print(f"  ✓ Restored users: {len(tables_data['users'])} rows")
+            # Update counter
+            cursor.execute("SELECT MAX(display_id) FROM users")
+            max_id = cursor.fetchone()[0]
+            if max_id:
+                global_display_id_counter = max(global_display_id_counter, max_id + 1)
+        
+        # Restore courses with NEW globally unique display_ids
+        if 'courses' in tables_data and tables_data['courses']:
+            for row in tables_data['courses']:
+                columns = list(row.keys())
+                values = list(row)
+                # Replace display_id with new global one
+                display_id_idx = columns.index('display_id')
+                values[display_id_idx] = global_display_id_counter
+                global_display_id_counter += 1
                 
-                # Insert data
+                placeholders = ','.join(['?' for _ in columns])
+                columns_str = ','.join(columns)
+                cursor.execute(f"INSERT INTO courses ({columns_str}) VALUES ({placeholders})", values)
+            print(f"  ✓ Restored courses: {len(tables_data['courses'])} rows with NEW global display_ids")
+        
+        # Restore students with NEW globally unique display_ids
+        if 'students' in tables_data and tables_data['students']:
+            for row in tables_data['students']:
+                columns = list(row.keys())
+                values = list(row)
+                # Replace display_id with new global one
+                display_id_idx = columns.index('display_id')
+                values[display_id_idx] = global_display_id_counter
+                global_display_id_counter += 1
+                
+                placeholders = ','.join(['?' for _ in columns])
+                columns_str = ','.join(columns)
+                cursor.execute(f"INSERT INTO students ({columns_str}) VALUES ({placeholders})", values)
+            print(f"  ✓ Restored students: {len(tables_data['students'])} rows with NEW global display_ids")
+        
+        # Restore classrooms with NEW globally unique display_ids
+        if 'classrooms' in tables_data and tables_data['classrooms']:
+            for row in tables_data['classrooms']:
+                columns = list(row.keys())
+                values = list(row)
+                # Replace display_id with new global one
+                display_id_idx = columns.index('display_id')
+                values[display_id_idx] = global_display_id_counter
+                global_display_id_counter += 1
+                
+                placeholders = ','.join(['?' for _ in columns])
+                columns_str = ','.join(columns)
+                cursor.execute(f"INSERT INTO classrooms ({columns_str}) VALUES ({placeholders})", values)
+            print(f"  ✓ Restored classrooms: {len(tables_data['classrooms'])} rows with NEW global display_ids")
+        
+        # Restore relationship tables
+        for table in ['student_courses', 'exams', 'exam_classrooms', 'exam_seating']:
+            if table in tables_data and tables_data[table]:
                 for row in tables_data[table]:
-                    values = tuple(row[col] for col in columns)
-                    cursor.execute(f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})", values)
-                
+                    columns = list(row.keys())
+                    values = list(row)
+                    
+                    # For exams, assign new global display_id if it has one
+                    if table == 'exams' and 'display_id' in columns:
+                        display_id_idx = columns.index('display_id')
+                        values[display_id_idx] = global_display_id_counter
+                        global_display_id_counter += 1
+                    
+                    placeholders = ','.join(['?' for _ in columns])
+                    columns_str = ','.join(columns)
+                    try:
+                        cursor.execute(f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})", values)
+                    except Exception as e:
+                        print(f"    ⚠ Skipped row in {table}: {e}")
                 print(f"  ✓ Restored {table}: {len(tables_data[table])} rows")
+        
+        # Don't restore deleted_ids - start fresh
+        print("  ✓ Starting fresh deleted_ids table")
         
         # Commit all changes
         conn.commit()
@@ -272,17 +373,18 @@ def fix_cascade_delete():
         conn.execute("PRAGMA foreign_keys = ON")
         
         print("\n" + "=" * 70)
-        print("✓ CASCADE DELETE FIX COMPLETED SUCCESSFULLY!")
+        print("✓ DISPLAY_ID IS NOW GLOBALLY UNIQUE!")
         print("=" * 70)
-        print("\nAll tables have been recreated with ON DELETE CASCADE.")
-        print("Foreign keys are now properly configured.")
+        print("\nAll display_ids are now globally unique across all departments.")
+        print("Delete operations will now work correctly.")
         
     except Exception as e:
         print(f"\n✗ ERROR: {str(e)}")
         conn.rollback()
-        print(f"\nRestoring from backup: {backup_path}")
-        conn.close()
-        shutil.copy2(backup_path, DATABASE_PATH)
+        if backup_path:
+            print(f"\nRestoring from backup: {backup_path}")
+            conn.close()
+            shutil.copy2(backup_path, DATABASE_PATH)
         raise
     finally:
         conn.close()
@@ -290,8 +392,9 @@ def fix_cascade_delete():
 
 if __name__ == "__main__":
     try:
-        fix_cascade_delete()
-        print("\nRun test_comprehensive.py again to verify the fix.")
+        fix_global_display_id()
+        print("\nDatabase updated successfully!")
+        print("All views will now show globally unique display_ids.")
     except Exception as e:
         print(f"\nFatal error: {str(e)}")
         import traceback

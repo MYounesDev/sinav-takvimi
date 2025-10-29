@@ -34,8 +34,7 @@ def add_coordinators():
             ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
             ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
             ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
-            ('Elektronik Koordinatörü', 'elektronik@gmail.com', 'ELEKTRONİK'),
-            ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
+
         ]
         
         # Default password: admin123

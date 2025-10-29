@@ -17,6 +17,7 @@ class StudentsView(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.all_students = []  # Store all students for filtering
         self.init_ui()
         
     def init_ui(self):
@@ -55,9 +56,9 @@ class StudentsView(QWidget):
         
         # Search box
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Search by student number or name...")
+        self.search_input.setPlaceholderText("🔍 Search by ID, Student No, or Name...")
         self.search_input.setStyleSheet(Styles.LINE_EDIT)
-        self.search_input.setFixedWidth(300)
+        self.search_input.setFixedWidth(350)
         self.search_input.textChanged.connect(self.filter_students)
         top_bar.addWidget(self.search_input)
         
@@ -90,6 +91,7 @@ class StudentsView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
         # Action buttons
@@ -142,15 +144,15 @@ class StudentsView(QWidget):
             dept_filter = f"WHERE s.department_id = {user['department_id']}"
         
         query = f"""
-            SELECT s.id, s.student_no, s.name, s.class_level,
+            SELECT s.id, s.display_id, s.student_no, s.name, s.class_level,
                    COUNT(sc.course_id) as course_count,
                    s.department_id, d.name as department_name, d.code as department_code
             FROM students s
             LEFT JOIN student_courses sc ON s.id = sc.student_id
             LEFT JOIN departments d ON s.department_id = d.id
             {dept_filter}
-            GROUP BY s.id, s.student_no, s.name, s.class_level, s.department_id, d.name, d.code
-            ORDER BY s.student_no
+            GROUP BY s.id, s.display_id, s.student_no, s.name, s.class_level, s.department_id, d.name, d.code
+            ORDER BY s.display_id
         """
         
         self.all_students = list(db_manager.execute_query(query))
@@ -158,13 +160,22 @@ class StudentsView(QWidget):
     
     def display_students(self, students):
         """Display students in table"""
-        self.table.setRowCount(len(students))
         user = get_current_user()
+        
+        # Disable sorting while populating
+        self.table.setSortingEnabled(False)
+        self.table.setRowCount(len(students))
         
         for row, student in enumerate(students):
             col_idx = 0
-            self.table.setItem(row, col_idx, QTableWidgetItem(str(student['id'])))
+            
+            # Display display_id but store real id in UserRole
+            id_item = QTableWidgetItem()
+            id_item.setData(Qt.ItemDataRole.DisplayRole, int(student['display_id']))
+            id_item.setData(Qt.ItemDataRole.UserRole, student['id'])  # Store real ID
+            self.table.setItem(row, col_idx, id_item)
             col_idx += 1
+            
             self.table.setItem(row, col_idx, QTableWidgetItem(student['student_no']))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(student['name']))
@@ -180,6 +191,9 @@ class StudentsView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(str(student['class_level']) if student['class_level'] else ""))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(student['course_count'])))
+        
+        # Re-enable sorting
+        self.table.setSortingEnabled(True)
     
     def filter_students(self):
         """Filter students based on search input"""
@@ -189,8 +203,11 @@ class StudentsView(QWidget):
             self.display_students(self.all_students)
             return
         
+        # Search in display_id, student_no, and name
         filtered = [s for s in self.all_students 
-                   if search_text in s['student_no'].lower() or search_text in s['name'].lower()]
+                   if (str(s['display_id']).lower().find(search_text) != -1 or
+                       s['student_no'].lower().find(search_text) != -1 or
+                       s['name'].lower().find(search_text) != -1)]
         
         self.display_students(filtered)
     
@@ -336,7 +353,7 @@ class StudentsView(QWidget):
                         student_id = existing[0]['id']
                     else:
                         # Insert new student with display_id
-                        display_id = db_manager.get_next_display_id('students', selected_dept_id)
+                        display_id = db_manager.get_next_display_id('students')
                         query = """
                             INSERT INTO students (display_id, department_id, student_no, name, class_level)
                             VALUES (?, ?, ?, ?, ?)
@@ -395,7 +412,8 @@ class StudentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a student to delete")
             return
         
-        student_id = int(self.table.item(row, 0).text())
+        # Get real ID from UserRole
+        student_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         student_name = self.table.item(row, 2).text()
         
         reply = QMessageBox.question(

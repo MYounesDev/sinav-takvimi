@@ -25,15 +25,7 @@ It is recommended to change passwords after first login.
 - **Password:** admin123
 - **Role:** Coordinator
 
-### 4. Elektronik Mühendisliği (Electronics Engineering)
-- **Email:** elektronik@gmail.com
-- **Password:** admin123
-- **Role:** Coordinator
 
-### 5. İnşaat Mühendisliği (Civil Engineering)
-- **Email:** insaat@gmail.com
-- **Password:** admin123
-- **Role:** Coordinator
 
 ## Admin Account
 

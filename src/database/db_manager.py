@@ -156,7 +156,7 @@ class DatabaseManager:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS classrooms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                display_id INTEGER UNIQUE NOT NULL,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -166,8 +166,7 @@ class DatabaseManager:
                 seats_per_desk INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, code),
-                UNIQUE(department_id, display_id)
+                UNIQUE(department_id, code)
             )
         """)
         
@@ -175,7 +174,7 @@ class DatabaseManager:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                display_id INTEGER UNIQUE NOT NULL,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -184,8 +183,7 @@ class DatabaseManager:
                 type TEXT CHECK(type IN ('mandatory', 'elective')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, code),
-                UNIQUE(department_id, display_id)
+                UNIQUE(department_id, code)
             )
         """)
         
@@ -193,14 +191,13 @@ class DatabaseManager:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                display_id INTEGER UNIQUE NOT NULL,
                 department_id INTEGER NOT NULL,
                 student_no TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 class_level INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, display_id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
@@ -221,7 +218,7 @@ class DatabaseManager:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exams (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                display_id INTEGER NOT NULL,
+                display_id INTEGER UNIQUE NOT NULL,
                 course_id INTEGER NOT NULL,
                 department_id INTEGER NOT NULL,
                 date TEXT NOT NULL,
@@ -230,8 +227,7 @@ class DatabaseManager:
                 exam_type TEXT DEFAULT 'final',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                UNIQUE(department_id, display_id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
@@ -346,14 +342,14 @@ class DatabaseManager:
         """
         Get the next available display_id for a table.
         Reuses deleted IDs if available, otherwise returns max + 1.
-        For department-scoped tables, display_id is unique per department.
+        display_id is now GLOBALLY UNIQUE across all tables and departments.
         
         Args:
             table_name: Name of the table
-            department_id: Optional department ID for department-scoped tables
+            department_id: Deprecated - kept for backward compatibility but not used
             
         Returns:
-            Next available display_id
+            Next available display_id (globally unique)
         """
         conn = self.get_connection()
         try:
@@ -378,20 +374,11 @@ class DatabaseManager:
                 conn.commit()
                 return recycled_id
             
-            # No recycled ID available, get max display_id + 1
-            if department_id and table_name in ['classrooms', 'courses', 'students', 'exams']:
-                # For department-scoped tables, display_id is per department
-                cursor.execute(f"""
-                    SELECT COALESCE(MAX(display_id), 0) + 1
-                    FROM {table_name}
-                    WHERE department_id = ?
-                """, (department_id,))
-            else:
-                # For global tables (departments, users), display_id is global
-                cursor.execute(f"""
-                    SELECT COALESCE(MAX(display_id), 0) + 1
-                    FROM {table_name}
-                """)
+            # No recycled ID available, get max display_id + 1 (globally)
+            cursor.execute(f"""
+                SELECT COALESCE(MAX(display_id), 0) + 1
+                FROM {table_name}
+            """)
             
             result = cursor.fetchone()
             return result[0]
@@ -441,9 +428,7 @@ class DatabaseManager:
         coordinators = [
             ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
             ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
-            ('Elektronik Koordinatörü', 'elektronik@gmail.com', 'ELEKTRONİK'),
-            ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
+            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK')
         ]
         
         for idx, (coord_name, coord_email, dept_code) in enumerate(coordinators, 2):

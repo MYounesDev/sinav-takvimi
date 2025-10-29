@@ -31,8 +31,7 @@ if __name__ == "__main__":
         print("    - bilgisayar@gmail.com (Bilgisayar Mühendisliği)")
         print("    - yazilim@gmail.com (Yazılım Mühendisliği)")
         print("    - elektrik@gmail.com (Elektrik Mühendisliği)")
-        print("    - elektronik@gmail.com (Elektronik Mühendisliği)")
-        print("    - insaat@gmail.com (İnşaat Mühendisliği)")
+
         
         print("\n" + "=" * 70)
         print("Database Features:")
