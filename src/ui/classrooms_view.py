@@ -381,19 +381,6 @@ class ClassroomDialog(QDialog):
         self.capacity_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Kapasite:", self.capacity_input)
         
-        # Load existing data if editing
-        if self.is_edit:
-            self.code_input.setText(self.classroom_data['code'] or '')
-            self.name_input.setText(self.classroom_data['name'])
-            self.rows_input.setValue(self.classroom_data['rows'])
-            self.cols_input.setValue(self.classroom_data['cols'])
-            self.seats_input.setValue(self.classroom_data['seats_per_desk'])
-            # Set department if admin and editing
-            if self.dept_combo and 'department_id' in self.classroom_data:
-                index = self.dept_combo.findData(self.classroom_data['department_id'])
-                if index >= 0:
-                    self.dept_combo.setCurrentIndex(index)
-        
         # Buttons
         button_layout = QHBoxLayout()
         
@@ -411,7 +398,7 @@ class ClassroomDialog(QDialog):
         
         main_layout.addWidget(form_widget)
         
-        # Right side - Preview
+        # Right side - Preview (create this BEFORE loading data)
         preview_widget = QWidget()
         preview_layout = QVBoxLayout(preview_widget)
         
@@ -433,6 +420,19 @@ class ClassroomDialog(QDialog):
         preview_layout.addWidget(scroll)
         
         main_layout.addWidget(preview_widget)
+        
+        # Load existing data if editing (AFTER preview grid is created)
+        if self.is_edit:
+            self.code_input.setText(self.classroom_data['code'] or '')
+            self.name_input.setText(self.classroom_data['name'])
+            self.rows_input.setValue(self.classroom_data['rows'])
+            self.cols_input.setValue(self.classroom_data['cols'])
+            self.seats_input.setValue(self.classroom_data['seats_per_desk'])
+            # Set department if admin and editing
+            if self.dept_combo and 'department_id' in self.classroom_data:
+                index = self.dept_combo.findData(self.classroom_data['department_id'])
+                if index >= 0:
+                    self.dept_combo.setCurrentIndex(index)
         
         # Update preview initially
         self.update_preview()
