@@ -13,6 +13,8 @@ from src.ui.courses_view import CoursesView
 from src.ui.students_view import StudentsView
 from src.ui.exam_schedule_view import ExamScheduleView
 from src.ui.seating_plan_view import SeatingPlanView
+from src.ui.users_view import UsersView
+from src.ui.departments_view import DepartmentsView
 from src.utils.auth import get_current_user, logout
 from src.utils.styles import Styles
 from config import WINDOW_WIDTH, WINDOW_HEIGHT, COLORS
@@ -89,7 +91,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Sidebar
+        # Sidebar (will be updated after login)
         self.sidebar = self.create_sidebar()
         layout.addWidget(self.sidebar)
         
@@ -113,6 +115,8 @@ class MainWindow(QMainWindow):
         self.students_view = StudentsView()
         self.exam_schedule_view = ExamScheduleView()
         self.seating_plan_view = SeatingPlanView()
+        self.users_view = UsersView()
+        self.departments_view = DepartmentsView()
         
         self.content_stack.addWidget(self.dashboard_view)
         self.content_stack.addWidget(self.classrooms_view)
@@ -120,6 +124,8 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.students_view)
         self.content_stack.addWidget(self.exam_schedule_view)
         self.content_stack.addWidget(self.seating_plan_view)
+        self.content_stack.addWidget(self.users_view)
+        self.content_stack.addWidget(self.departments_view)
         
         layout.addWidget(content_widget)
     
@@ -150,12 +156,17 @@ class MainWindow(QMainWindow):
         # Navigation buttons
         self.nav_buttons = []
         
+        # Common pages
         self.add_nav_button("🏠 Dashboard", 0, layout)
         self.add_nav_button("🏫 Classrooms", 1, layout)
         self.add_nav_button("📖 Courses", 2, layout)
         self.add_nav_button("👨‍🎓 Students", 3, layout)
         self.add_nav_button("📅 Exam Schedule", 4, layout)
         self.add_nav_button("💺 Seating Plan", 5, layout)
+        
+        # Admin-only pages (will be added after login if user is admin)
+        self.admin_users_btn = None
+        self.admin_depts_btn = None
         
         layout.addStretch()
         
@@ -219,8 +230,12 @@ class MainWindow(QMainWindow):
             btn.setChecked(i == index)
         
         # Update page title
+        user = get_current_user()
         titles = ["Dashboard", "Classrooms", "Courses", "Students", "Exam Schedule", "Seating Plan"]
-        self.page_title.setText(titles[index])
+        if user and user['role'] == 'admin':
+            titles.extend(["Users", "Departments"])
+        if index < len(titles):
+            self.page_title.setText(titles[index])
         
         # Refresh data for the selected page
         self.refresh_current_page(index)
@@ -259,6 +274,12 @@ class MainWindow(QMainWindow):
                 if hasattr(self.seating_plan_view, 'current_exam_id') and self.seating_plan_view.current_exam_id:
                     self.seating_plan_view.load_seating()
                 self.status_bar.showMessage("✅ Seating plan updated", 2000)
+            elif index == 6:  # Users (Admin only)
+                self.users_view.load_users()
+                self.status_bar.showMessage("✅ Users updated", 2000)
+            elif index == 7:  # Departments (Admin only)
+                self.departments_view.load_departments()
+                self.status_bar.showMessage("✅ Departments updated", 2000)
             
             # Clear status message after 2 seconds
             QTimer.singleShot(2000, lambda: self.status_bar.showMessage("Ready | Press F5 to refresh"))
@@ -271,9 +292,31 @@ class MainWindow(QMainWindow):
         """Handle successful login"""
         self.current_user = user
         
+        # Add admin navigation items if user is admin
+        if user['role'] == 'admin' and not self.admin_users_btn:
+            sidebar_layout = self.sidebar.layout()
+            # Insert before logout button (before last widget)
+            insert_index = sidebar_layout.count() - 1
+            
+            self.admin_users_btn = QPushButton("👥 Users")
+            self.admin_users_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
+            self.admin_users_btn.setCheckable(True)
+            self.admin_users_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.admin_users_btn.clicked.connect(lambda: self.switch_page(6))
+            sidebar_layout.insertWidget(insert_index, self.admin_users_btn)
+            self.nav_buttons.append(self.admin_users_btn)
+            
+            self.admin_depts_btn = QPushButton("🏢 Departments")
+            self.admin_depts_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
+            self.admin_depts_btn.setCheckable(True)
+            self.admin_depts_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.admin_depts_btn.clicked.connect(lambda: self.switch_page(7))
+            sidebar_layout.insertWidget(insert_index + 1, self.admin_depts_btn)
+            self.nav_buttons.append(self.admin_depts_btn)
+        
         # Update user label
         role_display = "Administrator" if user['role'] == 'admin' else "Coordinator"
-        dept_display = f" - {user['department_name']}" if user['department_name'] else ""
+        dept_display = f" - {user['department_name']}" if user.get('department_name') else ""
         self.user_label.setText(f"👤 {user['name']} ({role_display}){dept_display}")
         
         # Switch to app view
@@ -286,6 +329,20 @@ class MainWindow(QMainWindow):
         """Handle logout"""
         logout()
         self.current_user = None
+        
+        # Remove admin navigation items
+        if self.admin_users_btn:
+            self.sidebar.layout().removeWidget(self.admin_users_btn)
+            self.admin_users_btn.deleteLater()
+            self.admin_users_btn = None
+        
+        if self.admin_depts_btn:
+            self.sidebar.layout().removeWidget(self.admin_depts_btn)
+            self.admin_depts_btn.deleteLater()
+            self.admin_depts_btn = None
+        
+        # Clear from nav_buttons
+        self.nav_buttons = [btn for btn in self.nav_buttons if btn not in [self.admin_users_btn, self.admin_depts_btn]]
         
         # Clear login form
         self.login_view.clear_form()

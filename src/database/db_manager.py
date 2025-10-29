@@ -24,6 +24,7 @@ class DatabaseManager:
         """
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # Enable column access by name
+        conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
         return conn
     
     def execute_query(self, query: str, params: tuple = ()) -> List[sqlite3.Row]:
@@ -121,7 +122,7 @@ class DatabaseManager:
                 role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
                 department_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
@@ -147,7 +148,7 @@ class DatabaseManager:
                 cols INTEGER NOT NULL,
                 seats_per_desk INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id),
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)
             )
         """)
@@ -163,7 +164,7 @@ class DatabaseManager:
                 class_level INTEGER,
                 type TEXT CHECK(type IN ('mandatory', 'elective')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id),
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)
             )
         """)
@@ -177,7 +178,7 @@ class DatabaseManager:
                 name TEXT NOT NULL,
                 class_level INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
@@ -206,7 +207,7 @@ class DatabaseManager:
                 exam_type TEXT DEFAULT 'final',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-                FOREIGN KEY (department_id) REFERENCES departments(id)
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
         """)
         
@@ -218,7 +219,7 @@ class DatabaseManager:
                 classroom_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
-                FOREIGN KEY (classroom_id) REFERENCES classrooms(id),
+                FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
                 UNIQUE(exam_id, classroom_id)
             )
         """)
@@ -236,7 +237,7 @@ class DatabaseManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
                 FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-                FOREIGN KEY (classroom_id) REFERENCES classrooms(id),
+                FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
                 UNIQUE(exam_id, student_id)
             )
         """)
@@ -252,7 +253,6 @@ class DatabaseManager:
         
         # Create departments
         departments = [
-            ('Yönetim', 'ADMIN'),
             ('Bilgisayar Mühendisliği', 'BİLGİSAYAR'),
             ('Yazılım Mühendisliği', 'YAZILIM'),
             ('Elektrik Mühendisliği', 'ELEKTRİK'),
@@ -274,7 +274,7 @@ class DatabaseManager:
             bcrypt.gensalt()
         )
         
-        # Create admin user
+        # Create admin user (no department assignment)
         cursor.execute("""
             INSERT INTO users (name, email, password, role, department_id)
             VALUES (?, ?, ?, ?, ?)
@@ -283,16 +283,16 @@ class DatabaseManager:
             DEFAULT_ADMIN["email"],
             hashed_password.decode('utf-8'),
             DEFAULT_ADMIN["role"],
-            dept_ids['ADMIN']
+            None  # Admin is not tied to any department
         ))
         
         # Create coordinators for each department
         coordinators = [
-            ('Bilgisayar Koordinatörü', 'bilgisayar@kocaeli.edu.tr', 'BİLGİSAYAR'),
-            ('Yazılım Koordinatörü', 'yazilim@kocaeli.edu.tr', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@kocaeli.edu.tr', 'ELEKTRİK'),
-            ('Elektronik Koordinatörü', 'elektronik@kocaeli.edu.tr', 'ELEKTRONİK'),
-            ('İnşaat Koordinatörü', 'insaat@kocaeli.edu.tr', 'İNŞAAT')
+            ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
+            ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
+            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
+            ('Elektronik Koordinatörü', 'elektronik@gmail.com', 'ELEKTRONİK'),
+            ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
         ]
         
         for coord_name, coord_email, dept_code in coordinators:

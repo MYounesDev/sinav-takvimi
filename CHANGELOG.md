@@ -32,7 +32,7 @@
 
 - ✅ **Department coordinators**
   - Each department has its own coordinator account
-  - Login: `[department]@kocaeli.edu.tr` / `admin123`
+  - Login: `[department]@gmail.com` / `admin123`
 
 #### Improved Classroom Management
 - ✅ **Visual classroom preview**

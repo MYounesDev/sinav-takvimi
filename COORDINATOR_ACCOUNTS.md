@@ -11,33 +11,33 @@ It is recommended to change passwords after first login.
 ## Department Coordinators
 
 ### 1. Bilgisayar Mühendisliği (Computer Engineering)
-- **Email:** bilgisayar@kocaeli.edu.tr
+- **Email:** bilgisayar@gmail.com
 - **Password:** admin123
 - **Role:** Coordinator
 
 ### 2. Yazılım Mühendisliği (Software Engineering)
-- **Email:** yazilim@kocaeli.edu.tr
+- **Email:** yazilim@gmail.com
 - **Password:** admin123
 - **Role:** Coordinator
 
 ### 3. Elektrik Mühendisliği (Electrical Engineering)
-- **Email:** elektrik@kocaeli.edu.tr
+- **Email:** elektrik@gmail.com
 - **Password:** admin123
 - **Role:** Coordinator
 
 ### 4. Elektronik Mühendisliği (Electronics Engineering)
-- **Email:** elektronik@kocaeli.edu.tr
+- **Email:** elektronik@gmail.com
 - **Password:** admin123
 - **Role:** Coordinator
 
 ### 5. İnşaat Mühendisliği (Civil Engineering)
-- **Email:** insaat@kocaeli.edu.tr
+- **Email:** insaat@gmail.com
 - **Password:** admin123
 - **Role:** Coordinator
 
 ## Admin Account
 
-- **Email:** admin@kocaeli.edu.tr
+- **Email:** admin@gmail.com
 - **Password:** admin123
 - **Role:** Administrator
 
@@ -75,7 +75,7 @@ This script will:
 ## Login Instructions
 
 1. Launch the application
-2. Enter the coordinator email (e.g., bilgisayar@kocaeli.edu.tr)
+2. Enter the coordinator email (e.g., bilgisayar@gmail.com)
 3. Enter the password: admin123
 4. Click Login
 

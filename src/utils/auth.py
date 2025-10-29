@@ -65,7 +65,7 @@ class AuthService:
         return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     @staticmethod
-    def create_user(name: str, email: str, password: str, role: str, department_id: int) -> int:
+    def create_user(name: str, email: str, password: str, role: str, department_id: Optional[int] = None) -> int:
         """
         Create a new user
         
@@ -74,7 +74,7 @@ class AuthService:
             email: User email
             password: Plain text password
             role: User role (admin or coordinator)
-            department_id: Department ID
+            department_id: Department ID (None for admin, required for coordinator)
             
         Returns:
             New user ID

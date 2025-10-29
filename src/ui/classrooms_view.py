@@ -5,7 +5,7 @@ Classrooms View - Manage classrooms
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QDialog, QFormLayout, QLineEdit, QSpinBox, QMessageBox,
-                             QFrame, QGridLayout, QScrollArea)
+                             QFrame, QGridLayout, QScrollArea, QComboBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from src.database.db_manager import db_manager
@@ -36,6 +36,25 @@ class ClassroomsView(QWidget):
         
         top_bar.addStretch()
         
+        # Department filter (for admin only)
+        user = get_current_user()
+        if user and user['role'] == 'admin':
+            dept_label = QLabel("Department:")
+            dept_label.setStyleSheet(Styles.NORMAL_LABEL)
+            top_bar.addWidget(dept_label)
+            
+            self.dept_filter = QComboBox()
+            self.dept_filter.addItem("All Departments", None)
+            self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
+            
+            # Load departments
+            departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+            for dept in departments:
+                self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
+            
+            self.dept_filter.currentIndexChanged.connect(self.load_classrooms)
+            top_bar.addWidget(self.dept_filter)
+        
         # Add classroom button
         add_btn = QPushButton("➕ Add Classroom")
         add_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
@@ -54,10 +73,14 @@ class ClassroomsView(QWidget):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "ID", "Code", "Name", "Capacity", "Rows", "Columns", "Seats/Desk"
-        ])
+        user = get_current_user()
+        # Add department column for admin
+        column_count = 8 if user and user['role'] == 'admin' else 7
+        headers = ["ID", "Code", "Name", "Capacity", "Rows", "Columns", "Seats/Desk"]
+        if user and user['role'] == 'admin':
+            headers.insert(3, "Department")
+        self.table.setColumnCount(column_count)
+        self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -97,27 +120,55 @@ class ClassroomsView(QWidget):
         if not user:
             return
         
-        dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
+        # Build department filter
+        if user['role'] == 'admin':
+            selected_dept_id = None
+            if hasattr(self, 'dept_filter'):
+                selected_dept_id = self.dept_filter.currentData()
+            if selected_dept_id:
+                dept_filter = f"WHERE c.department_id = {selected_dept_id}"
+            else:
+                dept_filter = ""
+        else:
+            dept_filter = f"WHERE c.department_id = {user['department_id']}"
         
         query = f"""
-            SELECT id, code, name, capacity, rows, cols, seats_per_desk
-            FROM classrooms
+            SELECT c.id, c.code, c.name, c.capacity, c.rows, c.cols, c.seats_per_desk,
+                   c.department_id, d.name as department_name, d.code as department_code
+            FROM classrooms c
+            LEFT JOIN departments d ON c.department_id = d.id
             {dept_filter}
-            ORDER BY code
+            ORDER BY c.code
         """
         
         classrooms = db_manager.execute_query(query)
+        user = get_current_user()  # Refresh user for column calculation
         
         self.table.setRowCount(len(classrooms))
         
         for row, classroom in enumerate(classrooms):
-            self.table.setItem(row, 0, QTableWidgetItem(str(classroom['id'])))
-            self.table.setItem(row, 1, QTableWidgetItem(classroom['code']))
-            self.table.setItem(row, 2, QTableWidgetItem(classroom['name']))
-            self.table.setItem(row, 3, QTableWidgetItem(str(classroom['capacity'])))
-            self.table.setItem(row, 4, QTableWidgetItem(str(classroom['rows'])))
-            self.table.setItem(row, 5, QTableWidgetItem(str(classroom['cols'])))
-            self.table.setItem(row, 6, QTableWidgetItem(str(classroom['seats_per_desk'])))
+            col_idx = 0
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['id'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(classroom['code']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(classroom['name']))
+            col_idx += 1
+            
+            # Add department column for admin
+            if user and user['role'] == 'admin':
+                dept_name = classroom['department_name'] or 'N/A'
+                dept_code = classroom['department_code'] or ''
+                self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
+                col_idx += 1
+            
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['capacity'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['rows'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['cols'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['seats_per_desk'])))
     
     def add_classroom(self):
         """Open dialog to add new classroom"""
@@ -175,7 +226,18 @@ class ClassroomsView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
+            # For admin, delete filtered or all; for coordinator, only their department
+            if user['role'] == 'admin':
+                if hasattr(self, 'dept_filter'):
+                    selected_dept_id = self.dept_filter.currentData()
+                    if selected_dept_id:
+                        dept_filter = f"WHERE department_id = {selected_dept_id}"
+                    else:
+                        dept_filter = ""
+                else:
+                    dept_filter = ""
+            else:
+                dept_filter = f"WHERE department_id = {user['department_id']}"
             query = f"""DELETE FROM classrooms
             {dept_filter}"""
             db_manager.execute_update(query)
@@ -204,6 +266,17 @@ class ClassroomDialog(QDialog):
         form_widget = QWidget()
         form_layout = QFormLayout(form_widget)
         form_layout.setSpacing(15)
+        
+        # Department selection (for admin only)
+        user = get_current_user()
+        self.dept_combo = None
+        if user and user['role'] == 'admin':
+            self.dept_combo = QComboBox()
+            self.dept_combo.setStyleSheet(Styles.COMBO_BOX)
+            departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+            for dept in departments:
+                self.dept_combo.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
+            form_layout.addRow("Department:", self.dept_combo)
         
         # Code
         self.code_input = QLineEdit()
@@ -255,6 +328,11 @@ class ClassroomDialog(QDialog):
             self.rows_input.setValue(self.classroom_data['rows'])
             self.cols_input.setValue(self.classroom_data['cols'])
             self.seats_input.setValue(self.classroom_data['seats_per_desk'])
+            # Set department if admin and editing
+            if self.dept_combo and 'department_id' in self.classroom_data:
+                index = self.dept_combo.findData(self.classroom_data['department_id'])
+                if index >= 0:
+                    self.dept_combo.setCurrentIndex(index)
         
         # Buttons
         button_layout = QHBoxLayout()
@@ -373,21 +451,30 @@ class ClassroomDialog(QDialog):
         
         user = get_current_user()
         
+        # Get department_id: from combo for admin, from user for coordinator
+        if user['role'] == 'admin' and self.dept_combo:
+            dept_id = self.dept_combo.currentData()
+            if not dept_id:
+                QMessageBox.warning(self, "Doğrulama Hatası", "Lütfen bir departman seçin")
+                return
+        else:
+            dept_id = user['department_id']
+        
         try:
             if self.is_edit:
                 query = """
                     UPDATE classrooms
-                    SET code = ?, name = ?, capacity = ?, rows = ?, cols = ?, seats_per_desk = ?
+                    SET department_id = ?, code = ?, name = ?, capacity = ?, rows = ?, cols = ?, seats_per_desk = ?
                     WHERE id = ?
                 """
-                db_manager.execute_update(query, (code, name, capacity, rows, cols, seats, self.classroom_data['id']))
+                db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats, self.classroom_data['id']))
                 QMessageBox.information(self, "Başarılı", "Derslik başarıyla güncellendi!")
             else:
                 query = """
                     INSERT INTO classrooms (department_id, code, name, capacity, rows, cols, seats_per_desk)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """
-                db_manager.execute_update(query, (user['department_id'], code, name, capacity, rows, cols, seats))
+                db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats))
                 QMessageBox.information(self, "Başarılı", "Derslik başarıyla eklendi!")
             
             self.accept()

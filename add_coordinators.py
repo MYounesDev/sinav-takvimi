@@ -31,11 +31,11 @@ def add_coordinators():
         
         # Define coordinators
         coordinators = [
-            ('Bilgisayar Koordinatörü', 'bilgisayar@kocaeli.edu.tr', 'BİLGİSAYAR'),
-            ('Yazılım Koordinatörü', 'yazilim@kocaeli.edu.tr', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@kocaeli.edu.tr', 'ELEKTRİK'),
-            ('Elektronik Koordinatörü', 'elektronik@kocaeli.edu.tr', 'ELEKTRONİK'),
-            ('İnşaat Koordinatörü', 'insaat@kocaeli.edu.tr', 'İNŞAAT')
+            ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
+            ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
+            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
+            ('Elektronik Koordinatörü', 'elektronik@gmail.com', 'ELEKTRONİK'),
+            ('İnşaat Koordinatörü', 'insaat@gmail.com', 'İNŞAAT')
         ]
         
         # Default password: admin123

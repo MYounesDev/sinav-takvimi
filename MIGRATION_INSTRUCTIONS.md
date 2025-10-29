@@ -4,6 +4,7 @@
 
 1. ✅ **Clear All button** added to Classrooms page
 2. ✅ **ID Reuse** enabled - deleted IDs can now be reused
+3. ✅ **CASCADE Deletes** enabled - deleting a department/classroom/course automatically deletes all related data
 
 ## 🚀 How to Apply Changes
 
@@ -89,8 +90,10 @@ rename database\exam_scheduler_backup.db exam_scheduler.db
 ## 📖 More Information
 
 - **Complete guide**: See `DATABASE_MIGRATION_GUIDE.md`
+- **CASCADE deletes guide**: See `CASCADE_DELETE_GUIDE.md`
 - **Changes summary**: See `CHANGES_SUMMARY.md`
-- **Test demonstration**: Run `python test_id_reuse.py`
+- **Test ID reuse**: Run `python test_id_reuse.py`
+- **Test CASCADE deletes**: Run `python test_cascade_deletes.py`
 
 ## ❓ FAQ
 

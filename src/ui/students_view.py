@@ -4,7 +4,7 @@ Students View - Manage students and import from Excel
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
-                             QFileDialog, QMessageBox, QProgressDialog, QLineEdit)
+                             QFileDialog, QMessageBox, QProgressDialog, QLineEdit, QComboBox)
 from PyQt6.QtCore import Qt
 import pandas as pd
 from src.database.db_manager import db_manager
@@ -34,6 +34,25 @@ class StudentsView(QWidget):
         
         top_bar.addStretch()
         
+        # Department filter (for admin only)
+        user = get_current_user()
+        if user and user['role'] == 'admin':
+            dept_label = QLabel("Department:")
+            dept_label.setStyleSheet(Styles.NORMAL_LABEL)
+            top_bar.addWidget(dept_label)
+            
+            self.dept_filter = QComboBox()
+            self.dept_filter.addItem("All Departments", None)
+            self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
+            
+            # Load departments
+            departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+            for dept in departments:
+                self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
+            
+            self.dept_filter.currentIndexChanged.connect(self.load_students)
+            top_bar.addWidget(self.dept_filter)
+        
         # Search box
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Search by student number or name...")
@@ -60,10 +79,14 @@ class StudentsView(QWidget):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels([
-            "ID", "Student No", "Name", "Class Level", "Enrolled Courses"
-        ])
+        user = get_current_user()
+        # Add department column for admin
+        column_count = 6 if user and user['role'] == 'admin' else 5
+        headers = ["ID", "Student No", "Name", "Class Level", "Enrolled Courses"]
+        if user and user['role'] == 'admin':
+            headers.insert(3, "Department")
+        self.table.setColumnCount(column_count)
+        self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -100,15 +123,27 @@ class StudentsView(QWidget):
         if not user:
             return
         
-        dept_filter = "" if user['role'] == 'admin' else f"WHERE s.department_id = {user['department_id']}"
+        # Build department filter
+        if user['role'] == 'admin':
+            selected_dept_id = None
+            if hasattr(self, 'dept_filter'):
+                selected_dept_id = self.dept_filter.currentData()
+            if selected_dept_id:
+                dept_filter = f"WHERE s.department_id = {selected_dept_id}"
+            else:
+                dept_filter = ""
+        else:
+            dept_filter = f"WHERE s.department_id = {user['department_id']}"
         
         query = f"""
             SELECT s.id, s.student_no, s.name, s.class_level,
-                   COUNT(sc.course_id) as course_count
+                   COUNT(sc.course_id) as course_count,
+                   s.department_id, d.name as department_name, d.code as department_code
             FROM students s
             LEFT JOIN student_courses sc ON s.id = sc.student_id
+            LEFT JOIN departments d ON s.department_id = d.id
             {dept_filter}
-            GROUP BY s.id, s.student_no, s.name, s.class_level
+            GROUP BY s.id, s.student_no, s.name, s.class_level, s.department_id, d.name, d.code
             ORDER BY s.student_no
         """
         
@@ -118,13 +153,27 @@ class StudentsView(QWidget):
     def display_students(self, students):
         """Display students in table"""
         self.table.setRowCount(len(students))
+        user = get_current_user()
         
         for row, student in enumerate(students):
-            self.table.setItem(row, 0, QTableWidgetItem(str(student['id'])))
-            self.table.setItem(row, 1, QTableWidgetItem(student['student_no']))
-            self.table.setItem(row, 2, QTableWidgetItem(student['name']))
-            self.table.setItem(row, 3, QTableWidgetItem(str(student['class_level']) if student['class_level'] else ""))
-            self.table.setItem(row, 4, QTableWidgetItem(str(student['course_count'])))
+            col_idx = 0
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(student['id'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(student['student_no']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(student['name']))
+            col_idx += 1
+            
+            # Add department column for admin
+            if user and user['role'] == 'admin':
+                dept_name = student['department_name'] or 'N/A'
+                dept_code = student['department_code'] or ''
+                self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
+                col_idx += 1
+            
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(student['class_level']) if student['class_level'] else ""))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(student['course_count'])))
     
     def filter_students(self):
         """Filter students based on search input"""
@@ -232,6 +281,23 @@ class StudentsView(QWidget):
             
             user = get_current_user()
             
+            # For admin, show department selection dialog
+            selected_dept_id = user['department_id']
+            if user['role'] == 'admin':
+                from PyQt6.QtWidgets import QInputDialog
+                departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+                dept_items = [f"{dept['name']} ({dept['code']})" for dept in departments]
+                dept_map = {f"{dept['name']} ({dept['code']})": dept['id'] for dept in departments}
+                
+                item, ok = QInputDialog.getItem(
+                    self, "Select Department", 
+                    "Select the department for these students:",
+                    dept_items, 0, False
+                )
+                if not ok:
+                    return
+                selected_dept_id = dept_map[item]
+            
             # Show progress dialog
             progress = QProgressDialog("Importing students...", "Cancel", 0, len(df), self)
             progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -259,7 +325,7 @@ class StudentsView(QWidget):
                     """
                     
                     student_id = db_manager.execute_update(query, (
-                        user['department_id'], student_no, name, class_level
+                        selected_dept_id, student_no, name, class_level
                     ))
                     
                     # If course codes are provided, enroll student
@@ -273,9 +339,13 @@ class StudentsView(QWidget):
                         course_codes = [c.strip() for c in course_codes_str.split(',') if c.strip()]
                         
                         for course_code in course_codes:
-                            # Find course by code
-                            course_query = "SELECT id FROM courses WHERE code = ? AND department_id = ?"
-                            course_result = db_manager.execute_query(course_query, (course_code, user['department_id']))
+                            # Find course by code - for admin, search across all departments; for coordinator, only their department
+                            if user['role'] == 'admin':
+                                course_query = "SELECT id FROM courses WHERE code = ?"
+                                course_result = db_manager.execute_query(course_query, (course_code,))
+                            else:
+                                course_query = "SELECT id FROM courses WHERE code = ? AND department_id = ?"
+                                course_result = db_manager.execute_query(course_query, (course_code, user['department_id']))
                             
                             if course_result:
                                 # Enroll student in course
@@ -338,10 +408,26 @@ class StudentsView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
-            query = f"""DELETE FROM students
-            {dept_filter}"""
-            db_manager.execute_update(query)
+            # For admin, delete filtered or all; for coordinator, only their department
+            if user['role'] == 'admin' :
+                if hasattr(self, 'dept_filter'):
+                    selected_dept_id = self.dept_filter.currentData()
+                    if selected_dept_id is not None:
+                        query = "DELETE FROM students WHERE department_id = ?"
+                        db_manager.execute_update(query, (selected_dept_id,))
+                    else:
+                        query = "DELETE FROM students"
+                        db_manager.execute_update(query)
+                else:
+                    query = "DELETE FROM students"
+                    db_manager.execute_update(query)
+            else:
+                query = "DELETE FROM students WHERE department_id = ?"
+                db_manager.execute_update(query, (user['department_id'],))
+            
+            # Clear the table before reloading to avoid dataChanged warnings
+            self.table.setRowCount(0)
+            self.all_students = []
             self.load_students()
 
 

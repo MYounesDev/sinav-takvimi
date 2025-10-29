@@ -5,7 +5,34 @@ This document summarizes the changes made to implement ID reuse functionality an
 
 ## Changes Made
 
-### 1. Added "Clear All" Button to Classrooms Page
+### 1. Enabled CASCADE DELETE for All Foreign Keys ✅
+
+**File Modified**: `src/database/db_manager.py`
+
+**Changes**:
+- Added `ON DELETE CASCADE` to all foreign key constraints
+- Enabled foreign keys in database connections (`PRAGMA foreign_keys = ON`)
+
+**Affected Foreign Keys**:
+- `users.department_id` → `departments(id) ON DELETE CASCADE`
+- `classrooms.department_id` → `departments(id) ON DELETE CASCADE`
+- `courses.department_id` → `departments(id) ON DELETE CASCADE`
+- `students.department_id` → `departments(id) ON DELETE CASCADE`
+- `exams.department_id` → `departments(id) ON DELETE CASCADE`
+- `exam_classrooms.classroom_id` → `classrooms(id) ON DELETE CASCADE`
+- `exam_seating.classroom_id` → `classrooms(id) ON DELETE CASCADE`
+
+**Behavior Change**:
+- **Before**: Deleting a department with related records would fail with foreign key constraint error
+- **After**: Deleting a department automatically deletes all related users, courses, students, classrooms, exams, and all related records
+
+**Impact**:
+- You can now delete departments even if they have related data
+- Deleting a classroom automatically removes all exam assignments for that classroom
+- All deletions cascade through the entire database automatically
+- ⚠️ **Warning**: Deletions are permanent and cannot be undone!
+
+### 2. Added "Clear All" Button to Classrooms Page
 
 **File Modified**: `src/ui/classrooms_view.py`
 
@@ -19,7 +46,7 @@ This document summarizes the changes made to implement ID reuse functionality an
 - Confirmation dialog prevents accidental deletion
 - Consistent UI across all management pages
 
-### 2. Database Schema Update - Enable ID Reuse
+### 3. Database Schema Update - Enable ID Reuse
 
 **File Modified**: `src/database/db_manager.py`
 
@@ -46,7 +73,7 @@ This document summarizes the changes made to implement ID reuse functionality an
 | Delete all rows | IDs continue from last used | IDs restart from 1 |
 | Clear All + Add new | IDs keep incrementing | IDs start fresh from 1 |
 
-### 3. Migration Script
+### 4. Migration Script
 
 **File Created**: `migrate_database.py`
 
@@ -64,11 +91,13 @@ This document summarizes the changes made to implement ID reuse functionality an
 python migrate_database.py
 ```
 
-### 4. Documentation
+### 5. Documentation
 
 **Files Created**:
 - `DATABASE_MIGRATION_GUIDE.md` - Complete migration guide
+- `CASCADE_DELETE_GUIDE.md` - Guide for CASCADE delete functionality
 - `test_id_reuse.py` - Test script demonstrating ID reuse behavior
+- `test_cascade_deletes.py` - Test script demonstrating CASCADE delete behavior
 - `CHANGES_SUMMARY.md` - This file
 
 ## Testing
@@ -131,8 +160,10 @@ If you need to rollback:
 ## Related Files
 
 - `src/ui/classrooms_view.py` - Classrooms UI with Clear All button
-- `src/database/db_manager.py` - Database manager with updated schema
+- `src/database/db_manager.py` - Database manager with updated schema (CASCADE + ID reuse)
 - `migrate_database.py` - Migration script for existing databases
-- `test_id_reuse.py` - Test script demonstrating functionality
+- `test_id_reuse.py` - Test script demonstrating ID reuse functionality
+- `test_cascade_deletes.py` - Test script demonstrating CASCADE delete functionality
 - `DATABASE_MIGRATION_GUIDE.md` - Detailed migration documentation
+- `CASCADE_DELETE_GUIDE.md` - Complete CASCADE delete guide
 

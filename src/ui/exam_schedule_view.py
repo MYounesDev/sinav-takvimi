@@ -5,7 +5,7 @@ Exam Schedule View - Generate and view exam schedules
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QDialog, QFormLayout, QDateEdit, QSpinBox, QCheckBox,
-                             QMessageBox, QFrame, QGridLayout)
+                             QMessageBox, QFrame, QGridLayout, QComboBox)
 from PyQt6.QtCore import Qt, QDate
 from datetime import datetime
 from src.database.db_manager import db_manager
@@ -38,6 +38,25 @@ class ExamScheduleView(QWidget):
         
         top_bar.addStretch()
         
+        # Department filter (for admin only)
+        user = get_current_user()
+        if user and user['role'] == 'admin':
+            dept_label = QLabel("Department:")
+            dept_label.setStyleSheet(Styles.NORMAL_LABEL)
+            top_bar.addWidget(dept_label)
+            
+            self.dept_filter = QComboBox()
+            self.dept_filter.addItem("All Departments", None)
+            self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
+            
+            # Load departments
+            departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+            for dept in departments:
+                self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
+            
+            self.dept_filter.currentIndexChanged.connect(self.load_schedule)
+            top_bar.addWidget(self.dept_filter)
+        
         # Generate schedule button
         generate_btn = QPushButton("⚙️ Generate Schedule")
         generate_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
@@ -63,10 +82,14 @@ class ExamScheduleView(QWidget):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"
-        ])
+        user = get_current_user()
+        # Add department column for admin
+        column_count = 8 if user and user['role'] == 'admin' else 7
+        headers = ["Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"]
+        if user and user['role'] == 'admin':
+            headers.insert(4, "Department")
+        self.table.setColumnCount(column_count)
+        self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -94,31 +117,64 @@ class ExamScheduleView(QWidget):
         if not user:
             return
         
-        query = """
+        # Build department filter
+        if user['role'] == 'admin':
+            selected_dept_id = None
+            if hasattr(self, 'dept_filter'):
+                selected_dept_id = self.dept_filter.currentData()
+            if selected_dept_id:
+                dept_filter = "WHERE e.department_id = ?"
+                params = (selected_dept_id,)
+            else:
+                dept_filter = ""
+                params = ()
+        else:
+            dept_filter = "WHERE e.department_id = ?"
+            params = (user['department_id'],)
+        
+        query = f"""
             SELECT e.*, c.code as course_code, c.name as course_name,
                    GROUP_CONCAT(cl.name, ', ') as classroom_names,
-                   (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as student_count
+                   (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as student_count,
+                   d.name as department_name, d.code as department_code
             FROM exams e
             JOIN courses c ON e.course_id = c.id
             LEFT JOIN exam_classrooms ec ON e.id = ec.exam_id
             LEFT JOIN classrooms cl ON ec.classroom_id = cl.id
-            WHERE e.department_id = ?
+            LEFT JOIN departments d ON e.department_id = d.id
+            {dept_filter}
             GROUP BY e.id
             ORDER BY e.date, e.start_time
         """
         
-        exams = db_manager.execute_query(query, (user['department_id'],))
+        exams = db_manager.execute_query(query, params)
+        user = get_current_user()  # Refresh user for column calculation
         
         self.table.setRowCount(len(exams))
         
         for row, exam in enumerate(exams):
-            self.table.setItem(row, 0, QTableWidgetItem(exam['date']))
-            self.table.setItem(row, 1, QTableWidgetItem(exam['start_time']))
-            self.table.setItem(row, 2, QTableWidgetItem(exam['course_code']))
-            self.table.setItem(row, 3, QTableWidgetItem(exam['course_name']))
-            self.table.setItem(row, 4, QTableWidgetItem(f"{exam['duration']} min"))
-            self.table.setItem(row, 5, QTableWidgetItem(str(exam['student_count'])))
-            self.table.setItem(row, 6, QTableWidgetItem(exam['classroom_names'] or "N/A"))
+            col_idx = 0
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam['date']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam['start_time']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam['course_code']))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam['course_name']))
+            col_idx += 1
+            
+            # Add department column for admin
+            if user and user['role'] == 'admin':
+                dept_name = exam['department_name'] or 'N/A'
+                dept_code = exam['department_code'] or ''
+                self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
+                col_idx += 1
+            
+            self.table.setItem(row, col_idx, QTableWidgetItem(f"{exam['duration']} min"))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(str(exam['student_count'])))
+            col_idx += 1
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam['classroom_names'] or "N/A"))
     
     def show_schedule_dialog(self):
         """Show dialog to configure and generate schedule"""
@@ -184,7 +240,15 @@ class ExamScheduleView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (user['department_id'],))
+            # For admin, delete filtered or all; for coordinator, only their department
+            if user['role'] == 'admin' and hasattr(self, 'dept_filter'):
+                selected_dept_id = self.dept_filter.currentData()
+                if selected_dept_id:
+                    db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (selected_dept_id,))
+                else:
+                    db_manager.execute_update("DELETE FROM exams")
+            else:
+                db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (user['department_id'],))
             self.load_schedule()
 
 
@@ -296,9 +360,26 @@ class ScheduleConfigDialog(QDialog):
         
         user = get_current_user()
         
+        # For admin, select department
+        dept_id = user['department_id']
+        if user['role'] == 'admin':
+            from PyQt6.QtWidgets import QInputDialog
+            departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
+            dept_items = [f"{dept['name']} ({dept['code']})" for dept in departments]
+            dept_map = {f"{dept['name']} ({dept['code']})": dept['id'] for dept in departments}
+            
+            item, ok = QInputDialog.getItem(
+                self, "Select Department", 
+                "Select the department to generate schedule for:",
+                dept_items, 0, False
+            )
+            if not ok:
+                return
+            dept_id = dept_map[item]
+        
         try:
             # Create scheduler
-            scheduler = ExamScheduler(user['department_id'])
+            scheduler = ExamScheduler(dept_id)
             
             # Generate schedule
             scheduled_exams = scheduler.schedule_exams(

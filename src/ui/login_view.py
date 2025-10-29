@@ -126,7 +126,7 @@ class LoginView(QWidget):
         layout.addWidget(hint_label)
         
         # Coordinators hint
-        coord_hint = QLabel("Koordinatörler: bilgisayar@kocaeli.edu.tr, yazilim@kocaeli.edu.tr")
+        coord_hint = QLabel("Koordinatörler: bilgisayar@gmail.com, yazilim@gmail.com")
         coord_hint.setStyleSheet(f"""
             QLabel {{
                 color: {COLORS['text_light']};

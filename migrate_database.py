@@ -60,7 +60,7 @@ def migrate_table(cursor, table_name, create_sql, columns):
 def migrate_database():
     """Migrate the database schema"""
     print("=" * 60)
-    print("DATABASE MIGRATION: Enabling ID Reuse")
+    print("DATABASE MIGRATION: Enabling ID Reuse & CASCADE Deletes")
     print("=" * 60)
     
     # Backup first
@@ -86,7 +86,7 @@ def migrate_database():
                         role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
                         department_id INTEGER,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (department_id) REFERENCES departments(id)
+                        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
                 'columns': ['id', 'name', 'email', 'password', 'role', 'department_id', 'created_at']
@@ -116,7 +116,7 @@ def migrate_database():
                         cols INTEGER NOT NULL,
                         seats_per_desk INTEGER DEFAULT 1,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (department_id) REFERENCES departments(id),
+                        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                         UNIQUE(department_id, code)
                     )
                 """,
@@ -134,7 +134,7 @@ def migrate_database():
                         class_level INTEGER,
                         type TEXT CHECK(type IN ('mandatory', 'elective')),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (department_id) REFERENCES departments(id),
+                        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                         UNIQUE(department_id, code)
                     )
                 """,
@@ -150,7 +150,7 @@ def migrate_database():
                         name TEXT NOT NULL,
                         class_level INTEGER,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (department_id) REFERENCES departments(id)
+                        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
                 'columns': ['id', 'department_id', 'student_no', 'name', 'class_level', 'created_at']
@@ -183,7 +183,7 @@ def migrate_database():
                         exam_type TEXT DEFAULT 'final',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-                        FOREIGN KEY (department_id) REFERENCES departments(id)
+                        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
                 'columns': ['id', 'course_id', 'department_id', 'date', 'start_time', 'duration', 'exam_type', 'created_at']
@@ -197,7 +197,7 @@ def migrate_database():
                         classroom_id INTEGER NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
-                        FOREIGN KEY (classroom_id) REFERENCES classrooms(id),
+                        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
                         UNIQUE(exam_id, classroom_id)
                     )
                 """,
@@ -217,7 +217,7 @@ def migrate_database():
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
                         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-                        FOREIGN KEY (classroom_id) REFERENCES classrooms(id),
+                        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
                         UNIQUE(exam_id, student_id)
                     )
                 """,
@@ -244,14 +244,26 @@ def migrate_database():
         cursor.execute("CREATE INDEX idx_exams_date ON exams(date)")
         print("  ✓ Indexes recreated")
         
+        # Enable foreign keys
+        conn.execute("PRAGMA foreign_keys = ON")
+        
         # Commit changes
         conn.commit()
         print("\n" + "=" * 60)
         print("✓ MIGRATION COMPLETED SUCCESSFULLY!")
         print("=" * 60)
-        print("\nIDs will now be reused when rows are deleted.")
-        print("For example, if you delete row with ID=34 and insert a new row,")
-        print("the new row will get ID=34 instead of continuing to the next ID.")
+        print("\nChanges applied:")
+        print("  1. IDs will now be reused when rows are deleted")
+        print("  2. CASCADE deletes enabled - deleting a department will")
+        print("     automatically delete all related data (users, courses,")
+        print("     students, classrooms, exams, etc.)")
+        print("\nExample: Deleting a department will cascade delete:")
+        print("  - All users in that department")
+        print("  - All courses in that department")
+        print("  - All students in that department")
+        print("  - All classrooms in that department")
+        print("  - All exams for that department")
+        print("  - And all related records (student_courses, exam_seating, etc.)")
         
     except Exception as e:
         conn.rollback()
