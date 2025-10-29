@@ -111,6 +111,61 @@ class CoursesView(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem(str(course['class_level']) if course['class_level'] else ""))
             self.table.setItem(row, 5, QTableWidgetItem(course['type'] or ""))
     
+    def _normalize_turkish_courses(self, df):
+        """Normalize Turkish course format to standard format"""
+        # Turkish column name mappings (case-insensitive)
+        column_map = {
+            'DERS KODU': 'code',
+            'Ders Kodu': 'code',
+            'ders kodu': 'code',
+            'DERS ADI': 'name',
+            'Ders Adı': 'name',
+            'ders adı': 'name',
+            'DERSİN ADI': 'name',
+            'Dersin Adı': 'name',
+            'dersin adı': 'name',
+            'DERSİ VEREN ÖĞR. ELEMANI': 'instructor',
+            'Dersi Veren Öğr. Elemanı': 'instructor',
+            'dersi veren öğr. elemanı': 'instructor',
+            'Öğretim Elemanı': 'instructor',
+            'öğretim elemanı': 'instructor',
+            'SINIF': 'class_level',
+            'Sınıf': 'class_level',
+            'sınıf': 'class_level',
+        }
+        
+        # Rename columns based on mapping
+        new_columns = {}
+        for col in df.columns:
+            col_str = str(col).strip()
+            if col_str in column_map:
+                new_columns[col] = column_map[col_str]
+        
+        df = df.rename(columns=new_columns)
+        
+        # Clean up the dataframe - remove empty rows
+        df = df.dropna(how='all')
+        
+        # If we have 'code' column, filter out section headers and duplicate headers
+        if 'code' in df.columns:
+            # Remove rows where code looks like a section header (contains "Sınıf" or is NaN)
+            df = df[df['code'].notna()]
+            df = df[~df['code'].astype(str).str.contains('Sınıf', case=False, na=False)]
+            df = df[~df['code'].astype(str).str.contains('SINIF', case=False, na=False)]
+            # Remove duplicate header rows (where code is "DERS KODU")
+            df = df[~df['code'].astype(str).str.contains('DERS KODU', case=False, na=False)]
+            df = df[~df['code'].astype(str).str.contains('Ders Kodu', case=False, na=False)]
+        
+        # If there's no 'name' column but we have 'code', try to find name in other columns
+        if 'code' in df.columns and 'name' not in df.columns:
+            # Look for unnamed columns that might contain course names
+            unnamed_cols = [col for col in df.columns if 'Unnamed' in str(col) or str(col).startswith('Unnamed')]
+            if unnamed_cols:
+                # Use the first unnamed column as the course name
+                df = df.rename(columns={unnamed_cols[0]: 'name'})
+        
+        return df
+    
     def import_from_excel(self):
         """Import courses from Excel file"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -127,6 +182,18 @@ class CoursesView(QWidget):
             # Read Excel file
             df = pd.read_excel(file_path)
             
+            # Check if it's Turkish format (Ders Listesi.xlsx)
+            # Turkish format has columns like '1. Sınıf' and first row contains actual headers
+            if any('Sınıf' in str(col) for col in df.columns):
+                # Re-read with proper header row (row 1)
+                df = pd.read_excel(file_path, header=1)
+                # Standardize column names from Turkish to English
+                df = self._normalize_turkish_courses(df)
+            
+            # Check if Turkish format in different structure (with Turkish column names)
+            elif 'DERS KODU' in df.columns or 'Ders Kodu' in df.columns:
+                df = self._normalize_turkish_courses(df)
+            
             # Expected columns: code, name, instructor, class_level, type
             required_columns = ['code', 'name']
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -135,7 +202,8 @@ class CoursesView(QWidget):
                 QMessageBox.warning(
                     self, "Invalid Format",
                     f"Missing required columns: {', '.join(missing_columns)}\n\n"
-                    "Expected columns: code, name, instructor (optional), class_level (optional), type (optional)"
+                    "Expected columns: code, name, instructor (optional), class_level (optional), type (optional)\n\n"
+                    "Or Turkish format with columns: DERS KODU, DERS ADI, DERSİ VEREN ÖĞR. ELEMANI"
                 )
                 return
             
@@ -231,7 +299,9 @@ class CoursesView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            query = f"DELETE FROM courses WHERE department_id = {user['department_id']}"
+            dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
+            query = f"""DELETE FROM courses
+            {dept_filter}"""
             db_manager.execute_update(query)
             self.load_courses()
 

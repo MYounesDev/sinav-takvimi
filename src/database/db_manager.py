@@ -114,7 +114,7 @@ class DatabaseManager:
         # Users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
@@ -128,7 +128,7 @@ class DatabaseManager:
         # Departments table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS departments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL,
                 code TEXT UNIQUE NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -138,7 +138,7 @@ class DatabaseManager:
         # Classrooms table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS classrooms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -155,7 +155,7 @@ class DatabaseManager:
         # Courses table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS courses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -171,7 +171,7 @@ class DatabaseManager:
         # Students table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 department_id INTEGER NOT NULL,
                 student_no TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
@@ -184,7 +184,7 @@ class DatabaseManager:
         # Student-Course relationship table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS student_courses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 student_id INTEGER NOT NULL,
                 course_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -197,7 +197,7 @@ class DatabaseManager:
         # Exams table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exams (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 course_id INTEGER NOT NULL,
                 department_id INTEGER NOT NULL,
                 date TEXT NOT NULL,
@@ -213,7 +213,7 @@ class DatabaseManager:
         # Exam-Classroom assignment table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_classrooms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 exam_id INTEGER NOT NULL,
                 classroom_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -226,9 +226,9 @@ class DatabaseManager:
         # Exam Seating table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_seating (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                exam_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
                 student_id INTEGER NOT NULL,
+                exam_id INTEGER NOT NULL,
                 classroom_id INTEGER NOT NULL,
                 row INTEGER NOT NULL,
                 col INTEGER NOT NULL,

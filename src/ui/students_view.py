@@ -139,6 +139,63 @@ class StudentsView(QWidget):
         
         self.display_students(filtered)
     
+    def _normalize_turkish_students(self, df):
+        """Normalize Turkish student format to standard format
+        Turkish format is in long format: one row per student-course pair
+        Need to convert to wide format: one row per student with all courses
+        """
+        # Turkish column name mappings
+        column_map = {
+            'Öğrenci No': 'student_no',
+            'öğrenci no': 'student_no',
+            'ÖĞRENCI NO': 'student_no',
+            'Ad Soyad': 'name',
+            'ad soyad': 'name',
+            'AD SOYAD': 'name',
+            'İsim': 'name',
+            'isim': 'name',
+            'Sınıf': 'class_level_str',
+            'sınıf': 'class_level_str',
+            'SINIF': 'class_level_str',
+            'Ders': 'course_code',
+            'ders': 'course_code',
+            'DERS': 'course_code',
+            'Ders Kodu': 'course_code',
+            'ders kodu': 'course_code',
+        }
+        
+        # Rename columns based on mapping
+        new_columns = {}
+        for col in df.columns:
+            col_str = str(col).strip()
+            if col_str in column_map:
+                new_columns[col] = column_map[col_str]
+        
+        df = df.rename(columns=new_columns)
+        
+        # Clean up the dataframe
+        df = df.dropna(how='all')
+        
+        # If we have the long format (student_no, name, course_code per row)
+        if 'student_no' in df.columns and 'course_code' in df.columns:
+            # Extract class level from class_level_str (e.g., "1. Sınıf" -> 1)
+            if 'class_level_str' in df.columns:
+                df['class_level'] = df['class_level_str'].astype(str).str.extract(r'(\d+)')[0]
+                df['class_level'] = pd.to_numeric(df['class_level'], errors='coerce')
+            
+            # Group by student and aggregate courses
+            grouped = df.groupby(['student_no', 'name']).agg({
+                'class_level': 'first',  # Take the first class level
+                'course_code': lambda x: ','.join(x.dropna().astype(str))  # Combine all courses
+            }).reset_index()
+            
+            # Rename course_code column to course_codes
+            grouped = grouped.rename(columns={'course_code': 'course_codes'})
+            
+            return grouped
+        
+        return df
+    
     def import_from_excel(self):
         """Import students from Excel file"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -155,6 +212,11 @@ class StudentsView(QWidget):
             # Read Excel file
             df = pd.read_excel(file_path)
             
+            # Check if it's Turkish format (Ogrenci listesi.xlsx)
+            turkish_columns = ['Öğrenci No', 'Ad Soyad', 'Sınıf', 'Ders']
+            if any(col in df.columns for col in turkish_columns):
+                df = self._normalize_turkish_students(df)
+            
             # Expected columns: student_no, name, class_level, course_codes (comma-separated)
             required_columns = ['student_no', 'name']
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -163,7 +225,8 @@ class StudentsView(QWidget):
                 QMessageBox.warning(
                     self, "Invalid Format",
                     f"Missing required columns: {', '.join(missing_columns)}\n\n"
-                    "Expected columns: student_no, name, class_level (optional), course_codes (optional, comma-separated)"
+                    "Expected columns: student_no, name, class_level (optional), course_codes (optional, comma-separated)\n\n"
+                    "Or Turkish format with columns: Öğrenci No, Ad Soyad, Sınıf, Ders"
                 )
                 return
             
@@ -275,7 +338,9 @@ class StudentsView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            query = f"DELETE FROM students WHERE department_id = {user['department_id']}"
+            dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
+            query = f"""DELETE FROM students
+            {dept_filter}"""
             db_manager.execute_update(query)
             self.load_students()
 

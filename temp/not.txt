@@ -1,0 +1,22 @@
+excel format convert
+
+
+courses fix clear all botun (student courses)
+
+
+classrooms clear all botun     
+
+
+
+database delete id reset 
+
+
+tests
+
+
+
+FOR THEM -----
+turkish
+UI (better and difrent)
+
+tests

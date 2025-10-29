@@ -80,6 +80,12 @@ class ClassroomsView(QWidget):
         delete_btn.clicked.connect(self.delete_classroom)
         action_bar.addWidget(delete_btn)
         
+        clear_all_btn = QPushButton("🗑️ Clear All")
+        clear_all_btn.setStyleSheet(Styles.DANGER_BUTTON)
+        clear_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        clear_all_btn.clicked.connect(self.clear_all_classrooms)
+        action_bar.addWidget(clear_all_btn)
+        
         layout.addLayout(action_bar)
         
         # Load data
@@ -157,6 +163,23 @@ class ClassroomsView(QWidget):
             query = "DELETE FROM classrooms WHERE id = ?"
             db_manager.execute_update(query, (classroom_id,))
             QMessageBox.information(self, "Başarılı", "Derslik başarıyla silindi!")
+            self.load_classrooms()
+    
+    def clear_all_classrooms(self):
+        """Clear all classrooms"""
+        reply = QMessageBox.question(
+            self, "Onay",
+            "TÜM derslikleri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            user = get_current_user()
+            dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
+            query = f"""DELETE FROM classrooms
+            {dept_filter}"""
+            db_manager.execute_update(query)
+            QMessageBox.information(self, "Başarılı", "Tüm derslikler başarıyla silindi!")
             self.load_classrooms()
 
 
