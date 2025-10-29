@@ -209,12 +209,13 @@ class ExamScheduler:
         
         return assigned
     
-    def save_schedule(self, scheduled_exams: List[Dict]) -> int:
+    def save_schedule(self, scheduled_exams: List[Dict], exam_type: str = 'final') -> int:
         """
         Save scheduled exams to database
         
         Args:
             scheduled_exams: List of scheduled exam dictionaries
+            exam_type: Type of exam (final, midterm, resit)
             
         Returns:
             Number of exams saved
@@ -229,10 +230,10 @@ class ExamScheduler:
             # Get next display_id for this exam
             display_id = db_manager.get_next_display_id('exams')
             
-            # Insert exam with display_id
+            # Insert exam with display_id and exam_type
             query = """
                 INSERT INTO exams (display_id, course_id, department_id, date, start_time, duration, exam_type)
-                VALUES (?, ?, ?, ?, ?, ?, 'final')
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """
             exam_id = db_manager.execute_update(query, (
                 display_id,
@@ -240,7 +241,8 @@ class ExamScheduler:
                 self.department_id,
                 exam['date'],
                 exam['start_time'],
-                exam['duration']
+                exam['duration'],
+                exam_type
             ))
             
             # Assign classrooms to exam

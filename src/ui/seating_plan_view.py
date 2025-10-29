@@ -103,6 +103,9 @@ class SeatingPlanView(QWidget):
         if not user:
             return
         
+        # Store current selection
+        current_exam_id = self.current_exam_id
+        
         # Temporarily disconnect signal to avoid triggering during population
         try:
             self.exam_combo.currentIndexChanged.disconnect()
@@ -137,6 +140,14 @@ class SeatingPlanView(QWidget):
         self.exam_combo.currentIndexChanged.connect(self.on_exam_selected)
         
         if exams:
+            # Try to restore previous selection
+            if current_exam_id:
+                for i in range(self.exam_combo.count()):
+                    if self.exam_combo.itemData(i) == current_exam_id:
+                        self.exam_combo.setCurrentIndex(i)
+                        self.on_exam_selected(i)
+                        return
+            # If not found or no previous selection, select first
             self.on_exam_selected(0)
     
     def on_exam_selected(self, index):

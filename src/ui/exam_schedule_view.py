@@ -84,7 +84,7 @@ class ExamScheduleView(QWidget):
         self.table = QTableWidget()
         user = get_current_user()
         # Add department column for admin
-        headers = ["Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"]
+        headers = ["Date", "Time", "Course Code", "Course Name", "Exam Type", "Duration", "Students", "Classrooms"]
         if user and user['role'] == 'admin':
             headers.insert(4, "Department")
         self.table.setColumnCount(len(headers))
@@ -117,7 +117,7 @@ class ExamScheduleView(QWidget):
             return
         
         # Re-initialize table structure based on actual logged-in user
-        headers = ["Date", "Time", "Course Code", "Course Name", "Duration", "Students", "Classrooms"]
+        headers = ["Date", "Time", "Course Code", "Course Name", "Exam Type", "Duration", "Students", "Classrooms"]
         if user and user['role'] == 'admin':
             headers.insert(4, "Department")
         self.table.setColumnCount(len(headers))
@@ -176,6 +176,16 @@ class ExamScheduleView(QWidget):
                 self.table.setItem(row, col_idx, QTableWidgetItem(f"{dept_name} ({dept_code})"))
                 col_idx += 1
             
+            # Exam type with proper display name
+            exam_type = exam['exam_type'] if 'exam_type' in exam.keys() else 'final'
+            exam_type_display = {
+                'final': 'Final Exam',
+                'midterm': 'Midterm Exam',
+                'resit': 'Resit Exam'
+            }.get(exam_type, 'Final Exam')
+            self.table.setItem(row, col_idx, QTableWidgetItem(exam_type_display))
+            col_idx += 1
+            
             self.table.setItem(row, col_idx, QTableWidgetItem(f"{exam['duration']} min"))
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(exam['student_count'])))
@@ -205,7 +215,7 @@ class ExamScheduleView(QWidget):
         # Get schedule data
         query = f"""
             SELECT e.date, e.start_time, c.code as course_code, c.name as course_name,
-                   e.duration, 
+                   e.duration, e.exam_type,
                    (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as students,
                    GROUP_CONCAT(cl.name, ', ') as classrooms
             FROM exams e
@@ -226,11 +236,19 @@ class ExamScheduleView(QWidget):
         # Convert to DataFrame
         data = []
         for exam in exams:
+            exam_type = exam['exam_type'] if 'exam_type' in exam.keys() else 'final'
+            exam_type_display = {
+                'final': 'Final Exam',
+                'midterm': 'Midterm Exam',
+                'resit': 'Resit Exam'
+            }.get(exam_type, 'Final Exam')
+            
             data.append({
                 'Date': exam['date'],
                 'Time': exam['start_time'],
                 'Course Code': exam['course_code'],
                 'Course Name': exam['course_name'],
+                'Exam Type': exam_type_display,
                 'Duration (min)': exam['duration'],
                 'Students': exam['students'],
                 'Classrooms': exam['classrooms'] or 'N/A'
@@ -312,6 +330,14 @@ class ScheduleConfigDialog(QDialog):
         form_layout = QFormLayout()
         form_layout.setSpacing(15)
         
+        # Exam type
+        self.exam_type_combo = QComboBox()
+        self.exam_type_combo.addItem("Final Exam", "final")
+        self.exam_type_combo.addItem("Midterm Exam", "midterm")
+        self.exam_type_combo.addItem("Resit Exam", "resit")
+        self.exam_type_combo.setStyleSheet(Styles.COMBO_BOX)
+        form_layout.addRow("Exam Type:", self.exam_type_combo)
+        
         # Start date
         self.start_date_input = QDateEdit()
         self.start_date_input.setCalendarPopup(True)
@@ -391,6 +417,7 @@ class ScheduleConfigDialog(QDialog):
         duration = self.duration_input.value()
         break_time = self.break_input.value()
         prevent_conflicts = self.conflict_checkbox.isChecked()
+        exam_type = self.exam_type_combo.currentData()  # Get selected exam type
         
         # Get disabled days
         disabled_days = [i for i, cb in enumerate(self.day_checkboxes) if cb.isChecked()]
@@ -437,7 +464,7 @@ class ScheduleConfigDialog(QDialog):
                 return
             
             # Save schedule
-            saved_count = scheduler.save_schedule(scheduled_exams)
+            saved_count = scheduler.save_schedule(scheduled_exams, exam_type)
             
             QMessageBox.information(
                 self, "Success",
