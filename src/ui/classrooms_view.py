@@ -476,11 +476,12 @@ class ClassroomDialog(QDialog):
                 db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats, self.classroom_data['id']))
                 QMessageBox.information(self, "Başarılı", "Derslik başarıyla güncellendi!")
             else:
+                display_id = db_manager.get_next_display_id('classrooms', dept_id)
                 query = """
-                    INSERT INTO classrooms (department_id, code, name, capacity, rows, cols, seats_per_desk)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO classrooms (display_id, department_id, code, name, capacity, rows, cols, seats_per_desk)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """
-                db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats))
+                db_manager.execute_update(query, (display_id, dept_id, code, name, capacity, rows, cols, seats))
                 QMessageBox.information(self, "Başarılı", "Derslik başarıyla eklendi!")
             
             self.accept()

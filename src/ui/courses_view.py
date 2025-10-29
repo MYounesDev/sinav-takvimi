@@ -356,20 +356,30 @@ class CoursesView(QWidget):
                     if course_type and course_type not in ['mandatory', 'elective']:
                         course_type = None
                     
-                    # Insert or update course
-                    query = """
-                        INSERT INTO courses (department_id, code, name, instructor, class_level, type)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(department_id, code) DO UPDATE SET
-                        name = excluded.name,
-                        instructor = excluded.instructor,
-                        class_level = excluded.class_level,
-                        type = excluded.type
-                    """
+                    # Check if course already exists
+                    check_query = "SELECT id FROM courses WHERE department_id = ? AND code = ?"
+                    existing = db_manager.execute_query(check_query, (selected_dept_id, code))
                     
-                    db_manager.execute_update(query, (
-                        selected_dept_id, code, name, instructor, class_level, course_type
-                    ))
+                    if existing:
+                        # Update existing course
+                        query = """
+                            UPDATE courses
+                            SET name = ?, instructor = ?, class_level = ?, type = ?
+                            WHERE department_id = ? AND code = ?
+                        """
+                        db_manager.execute_update(query, (
+                            name, instructor, class_level, course_type, selected_dept_id, code
+                        ))
+                    else:
+                        # Insert new course with display_id
+                        display_id = db_manager.get_next_display_id('courses', selected_dept_id)
+                        query = """
+                            INSERT INTO courses (display_id, department_id, code, name, instructor, class_level, type)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        db_manager.execute_update(query, (
+                            display_id, selected_dept_id, code, name, instructor, class_level, course_type
+                        ))
                     
                     imported_count += 1
                     

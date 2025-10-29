@@ -321,27 +321,32 @@ class StudentsView(QWidget):
                     class_level = int(row.get('class_level', 0)) if pd.notna(row.get('class_level')) else None
                     course_codes_str = str(row.get('course_codes', '')).strip() if pd.notna(row.get('course_codes')) else ""
                     
-                    # Insert or update student
-                    query = """
-                        INSERT INTO students (department_id, student_no, name, class_level)
-                        VALUES (?, ?, ?, ?)
-                        ON CONFLICT(student_no) DO UPDATE SET
-                        name = excluded.name,
-                        class_level = excluded.class_level
-                    """
+                    # Check if student already exists
+                    check_query = "SELECT id FROM students WHERE student_no = ?"
+                    existing = db_manager.execute_query(check_query, (student_no,))
                     
-                    student_id = db_manager.execute_update(query, (
-                        selected_dept_id, student_no, name, class_level
-                    ))
+                    if existing:
+                        # Update existing student
+                        query = """
+                            UPDATE students
+                            SET name = ?, class_level = ?
+                            WHERE student_no = ?
+                        """
+                        db_manager.execute_update(query, (name, class_level, student_no))
+                        student_id = existing[0]['id']
+                    else:
+                        # Insert new student with display_id
+                        display_id = db_manager.get_next_display_id('students', selected_dept_id)
+                        query = """
+                            INSERT INTO students (display_id, department_id, student_no, name, class_level)
+                            VALUES (?, ?, ?, ?, ?)
+                        """
+                        student_id = db_manager.execute_update(query, (
+                            display_id, selected_dept_id, student_no, name, class_level
+                        ))
                     
                     # If course codes are provided, enroll student
                     if course_codes_str and student_id:
-                        # Get the student id if it was an update
-                        if not student_id:
-                            result = db_manager.execute_query("SELECT id FROM students WHERE student_no = ?", (student_no,))
-                            if result:
-                                student_id = result[0]['id']
-                        
                         course_codes = [c.strip() for c in course_codes_str.split(',') if c.strip()]
                         
                         for course_code in course_codes:
