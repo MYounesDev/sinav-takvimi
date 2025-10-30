@@ -162,7 +162,7 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
         fontSize=18,
         textColor=colors.HexColor('#2C3E50'),
         spaceAfter=20,
-        alignment=1  # Center
+        alignment=1 
     )
     
     title = Paragraph(f"Seating Plan - {exam['course_code']} {exam['course_name']}", title_style)

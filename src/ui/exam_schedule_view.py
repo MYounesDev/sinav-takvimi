@@ -83,8 +83,8 @@ class ExamScheduleView(QWidget):
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  # Allow double-click editing
-        self.table.itemChanged.connect(self.on_item_changed)  # Connect to handle changes
+        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  
+        self.table.itemChanged.connect(self.on_item_changed)  
         layout.addWidget(self.table)
         
         action_bar = QHBoxLayout()
@@ -142,12 +142,12 @@ class ExamScheduleView(QWidget):
         """
         
         exams = db_manager.execute_query(query, params)
-        user = get_current_user()  # Refresh user for column calculation
+        user = get_current_user()  
         
         try:
             self.table.itemChanged.disconnect(self.on_item_changed)
         except:
-            pass  # Signal might not be connected yet
+            pass  
         
         self.table.setRowCount(len(exams))
         
@@ -155,8 +155,8 @@ class ExamScheduleView(QWidget):
             col_idx = 0
             
             date_item = QTableWidgetItem(exam['date'])
-            date_item.setData(Qt.ItemDataRole.UserRole, exam['id'])  # Store exam ID
-            date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # Not editable
+            date_item.setData(Qt.ItemDataRole.UserRole, exam['id'])  
+            date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  
             self.table.setItem(row, col_idx, date_item)
             col_idx += 1
             
@@ -215,9 +215,9 @@ class ExamScheduleView(QWidget):
         user = get_current_user()
         
         if user and user['role'] == 'admin':
-            duration_col = 6  # Date, Time, Code, Name, Department, Type, Duration
+            duration_col = 6  
         else:
-            duration_col = 5  # Date, Time, Code, Name, Type, Duration
+            duration_col = 5  
         
         if item.column() != duration_col:
             return
@@ -345,7 +345,7 @@ class ExamScheduleView(QWidget):
             "Excel Files (*.xlsx);;All Files (*)"
         )
         
-        if not file_path:  # User cancelled
+        if not file_path:  
             return
         
         if not file_path.lower().endswith('.xlsx'):
@@ -445,7 +445,7 @@ class ScheduleConfigDialog(QDialog):
         
         for i, day in enumerate(days):
             cb = QCheckBox(day)
-            if i >= 5:  # Default: exclude Saturday and Sunday
+            if i >= 5:  
                 cb.setChecked(True)
             self.day_checkboxes.append(cb)
             days_layout.addWidget(cb, i // 4, i % 4)
@@ -477,7 +477,7 @@ class ScheduleConfigDialog(QDialog):
         duration = self.duration_input.value()
         break_time = self.break_input.value()
         prevent_conflicts = self.conflict_checkbox.isChecked()
-        exam_type = self.exam_type_combo.currentData()  # Get selected exam type
+        exam_type = self.exam_type_combo.currentData()  
         
         disabled_days = [i for i, cb in enumerate(self.day_checkboxes) if cb.isChecked()]
         

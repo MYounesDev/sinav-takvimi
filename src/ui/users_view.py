@@ -1,21 +1,17 @@
-"""
-Users View - Manage users and coordinators (Admin only)
-"""
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QDialog, QFormLayout, QLineEdit, QMessageBox, QComboBox)
-from PyQt6.QtCore import Qt
 from src.database.db_manager import db_manager
-from src.utils.auth import get_current_user, AuthService
+from PyQt6.QtCore import Qt
 from src.utils.styles import Styles
+from src.utils.auth import get_current_user, AuthService
 
 class UsersView(QWidget):
-    """Users management view (Admin only)"""
     
     def __init__(self):
         super().__init__()
-        self.all_users = []  # Store all users for filtering
+        self.all_users = []  
         self.init_ui()
         
     def init_ui(self):
@@ -68,7 +64,7 @@ class UsersView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)  # Enable column sorting
+        self.table.setSortingEnabled(True)  
         layout.addWidget(self.table)
         
         action_bar = QHBoxLayout()
@@ -101,7 +97,7 @@ class UsersView(QWidget):
         """
         
         users = db_manager.execute_query(query)
-        self.all_users = users  # Store for filtering
+        self.all_users = users  
         self.populate_table(users)
     
     def populate_table(self, users):
@@ -112,7 +108,7 @@ class UsersView(QWidget):
         for row, user in enumerate(users):
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(user['display_id']))
-            id_item.setData(Qt.ItemDataRole.UserRole, user['id'])  # Store real ID
+            id_item.setData(Qt.ItemDataRole.UserRole, user['id'])  
             self.table.setItem(row, 0, id_item)
             
             self.table.setItem(row, 1, QTableWidgetItem(user['name']))
@@ -266,7 +262,7 @@ class UserDialog(QDialog):
         if self.is_edit:
             self.name_input.setText(self.user_data['name'])
             self.email_input.setText(self.user_data['email'])
-            self.email_input.setReadOnly(True)  # Email cannot be changed
+            self.email_input.setReadOnly(True)  
             
             role_index = self.role_combo.findData(self.user_data['role'])
             if role_index >= 0:
@@ -297,7 +293,7 @@ class UserDialog(QDialog):
         """Handle role change"""
         role = self.role_combo.currentData()
         if role == 'admin':
-            self.dept_combo.setCurrentIndex(0)  # Set to N/A
+            self.dept_combo.setCurrentIndex(0)  
             self.dept_combo.setEnabled(False)
         else:
             self.dept_combo.setEnabled(True)

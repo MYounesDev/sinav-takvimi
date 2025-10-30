@@ -302,30 +302,30 @@ class MainWindow(QMainWindow):
             if not self.status_bar.currentMessage().startswith("🔄"):
                 self.status_bar.showMessage("🔄 Veriler yenileniyor...")
             
-            if index == 0:  # Dashboard
+            if index == 0:  
                 self.dashboard_view.load_data()
                 self.status_bar.showMessage("✅ Gösterge paneli güncellendi", 2000)
-            elif index == 1:  # Classrooms
+            elif index == 1:  
                 self.classrooms_view.load_classrooms()
                 self.status_bar.showMessage("✅ Sınıflar güncellendi", 2000)
-            elif index == 2:  # Courses
+            elif index == 2:  
                 self.courses_view.load_courses()
                 self.status_bar.showMessage("✅ Dersler güncellendi", 2000)
-            elif index == 3:  # Students
+            elif index == 3:  
                 self.students_view.load_students()
                 self.status_bar.showMessage("✅ Öğrenciler güncellendi", 2000)
-            elif index == 4:  # Exam Schedule
+            elif index == 4:  
                 self.exam_schedule_view.load_schedule()
                 self.status_bar.showMessage("✅ Sınav programı güncellendi", 2000)
-            elif index == 5:  # Seating Plan
+            elif index == 5:  
                 self.seating_plan_view.load_exams()
                 if hasattr(self.seating_plan_view, 'current_exam_id') and self.seating_plan_view.current_exam_id:
                     self.seating_plan_view.load_seating()
                 self.status_bar.showMessage("✅ Oturma düzeni güncellendi", 2000)
-            elif index == 6:  # Users (Admin only)
+            elif index == 6:  
                 self.users_view.load_users()
                 self.status_bar.showMessage("✅ Kullanıcılar güncellendi", 2000)
-            elif index == 7:  # Departments (Admin only)
+            elif index == 7:  
                 self.departments_view.load_departments()
                 self.status_bar.showMessage("✅ Bölümler güncellendi", 2000)
             

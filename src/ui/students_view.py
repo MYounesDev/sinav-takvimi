@@ -1,26 +1,20 @@
-"""
-Students View - Manage students and import from Excel
-"""
 
+from src.utils.auth import get_current_user
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QFileDialog, QMessageBox, QProgressDialog, QLineEdit, QComboBox, QDialog)
-from PyQt6.QtCore import Qt
 import pandas as pd
-from src.database.db_manager import db_manager
-from src.utils.auth import get_current_user
 from src.utils.styles import Styles
+from src.database.db_manager import db_manager
 
 class StudentsView(QWidget):
-    """Students management view with Excel import"""
-    
     def __init__(self):
         super().__init__()
-        self.all_students = []  # Store all students for filtering
+        self.all_students = []  
         self.init_ui()
         
     def init_ui(self):
-        """Initialize the UI"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
@@ -82,7 +76,7 @@ class StudentsView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)  # Enable column sorting
+        self.table.setSortingEnabled(True)  
         layout.addWidget(self.table)
         
         action_bar = QHBoxLayout()
@@ -162,7 +156,7 @@ class StudentsView(QWidget):
             
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(student['display_id']))
-            id_item.setData(Qt.ItemDataRole.UserRole, student['id'])  # Store real ID
+            id_item.setData(Qt.ItemDataRole.UserRole, student['id'])  
             self.table.setItem(row, col_idx, id_item)
             col_idx += 1
             
@@ -238,8 +232,8 @@ class StudentsView(QWidget):
                 df['class_level'] = pd.to_numeric(df['class_level'], errors='coerce')
             
             grouped = df.groupby(['student_no', 'name']).agg({
-                'class_level': 'first',  # Take the first class level
-                'course_code': lambda x: ','.join(x.dropna().astype(str))  # Combine all courses
+                'class_level': 'first',  
+                'course_code': lambda x: ','.join(x.dropna().astype(str))  
             }).reset_index()
             
             grouped = grouped.rename(columns={'course_code': 'course_codes'})

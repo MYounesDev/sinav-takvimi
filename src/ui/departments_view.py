@@ -185,8 +185,7 @@ class DepartmentDialog(QDialog):
         if self.is_edit:
             self.name_input.setText(self.dept_data['name'])
             self.code_input.setText(self.dept_data['code'])
-            self.code_input.setReadOnly(True)  # Code cannot be changed after creation
-        
+            self.code_input.setReadOnly(True)  
         button_layout = QHBoxLayout()
         
         save_btn = QPushButton("Save")

@@ -14,8 +14,8 @@ class ExamScheduler:
         self.courses = []
         self.students = []
         self.classrooms = []
-        self.student_courses = {}  # student_id -> set of course_ids
-        self.course_students = {}  # course_id -> set of student_ids
+        self.student_courses = {}  
+        self.course_students = {}  
         
     def load_data(self):
         """Load courses, students, and classrooms from database"""

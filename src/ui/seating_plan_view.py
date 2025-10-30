@@ -98,7 +98,7 @@ class SeatingPlanView(QWidget):
         try:
             self.exam_combo.currentIndexChanged.disconnect()
         except:
-            pass  # Signal might not be connected yet
+            pass  
         
         if user['role'] == 'admin':
             dept_filter = ""
@@ -381,7 +381,7 @@ class SeatingPlanView(QWidget):
             "PDF Files (*.pdf);;All Files (*)"
         )
         
-        if not file_path:  # User cancelled
+        if not file_path:  
             return
         
         if not file_path.lower().endswith('.pdf'):
