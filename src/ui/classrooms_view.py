@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
-from src.utils.styles import Styles, apply_shadow
+from src.utils.styles import Styles, apply_shadow, configure_table_widget
 from config import COLORS
 
 class ClassroomsView(QWidget):
@@ -86,10 +86,10 @@ class ClassroomsView(QWidget):
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)  
+        
+        # Configure table for proper visibility and scrolling
+        configure_table_widget(self.table, min_row_height=38, min_total_height=450)
+        
         layout.addWidget(self.table)
         
         action_bar = QHBoxLayout()
@@ -188,6 +188,8 @@ class ClassroomsView(QWidget):
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['seats_per_desk'])))
         
+        # Ensure all rows are visible with proper height
+        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
     
     def filter_classrooms(self):
