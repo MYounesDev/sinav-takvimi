@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTableWidget, QTableWidgetItem, QHeaderView, QLabel,
                              QFileDialog, QMessageBox, QProgressDialog, QLineEdit, QComboBox, QDialog)
 import pandas as pd
-from src.utils.styles import Styles
+from src.utils.styles import Styles, configure_table_widget
 from src.database.db_manager import db_manager
 
 class StudentsView(QWidget):
@@ -73,6 +73,10 @@ class StudentsView(QWidget):
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
+        
+        # Configure table for proper visibility and scrolling
+        configure_table_widget(self.table, min_row_height=38, min_total_height=450)
+        
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -175,6 +179,8 @@ class StudentsView(QWidget):
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(student['course_count'])))
         
+        # Ensure all rows are visible with proper height
+        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
     
     def filter_students(self):
@@ -496,10 +502,9 @@ class StudentDetailsDialog(QDialog):
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["ID", "Code", "Name", "Instructor", "Class Level", "Type", "Status"])
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)
+        
+        # Configure table for proper visibility and scrolling
+        configure_table_widget(self.table, min_row_height=38, min_total_height=350)
         
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(self.courses))
@@ -511,6 +516,9 @@ class StudentDetailsDialog(QDialog):
             self.table.setItem(row, 4, QTableWidgetItem(str(course['class_level']) if course['class_level'] else ""))
             self.table.setItem(row, 5, QTableWidgetItem(course['type'] or ''))
             self.table.setItem(row, 6, QTableWidgetItem(course['status']))
+        
+        # Ensure all rows are visible with proper height
+        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
         
         layout.addWidget(self.table)

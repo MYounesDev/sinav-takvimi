@@ -11,7 +11,7 @@ from PyQt6.QtGui import QFont
 from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
 from src.utils.seating import SeatingPlanGenerator
-from src.utils.styles import Styles
+from src.utils.styles import Styles, configure_table_widget
 from src.utils.pdf_export import export_seating_plan_pdf
 from config import COLORS
 
@@ -80,9 +80,10 @@ class SeatingPlanView(QWidget):
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
+        # Configure table for proper visibility and scrolling
+        configure_table_widget(self.table, min_row_height=38, min_total_height=450)
+        
         layout.addWidget(self.table)
         
         self.load_exams()
@@ -193,6 +194,9 @@ class SeatingPlanView(QWidget):
             if seat['seat_position'] > 1:
                 seat_label += f" ({seat['seat_position']})"
             self.table.setItem(row, col_idx, QTableWidgetItem(seat_label))
+        
+        # Ensure all rows are visible with proper height
+        self.table.verticalHeader().setDefaultSectionSize(38)
     
     def generate_seating(self):
         """Generate seating plan for selected exam"""
