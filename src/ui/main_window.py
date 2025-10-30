@@ -3,8 +3,8 @@ Main Window - Application main window with navigation
 """
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QStackedWidget, QPushButton, QLabel, QFrame, QStatusBar)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+                             QStackedWidget, QPushButton, QLabel, QFrame, QStatusBar, QMenu)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QRect
 from PyQt6.QtGui import QIcon, QKeySequence, QShortcut
 from src.ui.login_view import LoginView
 from src.ui.dashboard_view import DashboardView
@@ -19,19 +19,18 @@ from src.utils.auth import get_current_user, logout
 from src.utils.styles import Styles
 from config import WINDOW_WIDTH, WINDOW_HEIGHT, COLORS
 
-
 class MainWindow(QMainWindow):
     """Main application window"""
     
     def __init__(self):
         super().__init__()
         self.current_user = None
+        self.sidebar_expanded = True
         self.init_ui()
     
     def changeEvent(self, event):
         """Handle window state changes"""
         super().changeEvent(event)
-        # Refresh data when window becomes active
         if event.type() == event.Type.ActivationChange and self.isActiveWindow():
             if self.stacked_widget.currentWidget() == self.app_view:
                 current_index = self.content_stack.currentIndex()
@@ -39,11 +38,10 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         """Initialize the UI"""
-        self.setWindowTitle("Exam Scheduler - Kocaeli University")
+        self.setWindowTitle("Sınav Planlama Sistemi - Kocaeli Üniversitesi")
         self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setStyleSheet(Styles.MAIN_WINDOW)
         
-        # Create status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.setStyleSheet(f"""
@@ -54,34 +52,27 @@ class MainWindow(QMainWindow):
                 padding: 5px;
             }}
         """)
-        self.status_bar.showMessage("Ready | Press F5 to refresh")
+        self.status_bar.showMessage("Hazır | F5 ile yenile")
         
-        # Central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Main layout
         self.main_layout = QVBoxLayout(central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Stacked widget for switching between login and main app
         self.stacked_widget = QStackedWidget()
         self.main_layout.addWidget(self.stacked_widget)
         
-        # Create login view
         self.login_view = LoginView()
         self.login_view.login_successful.connect(self.on_login_successful)
         self.stacked_widget.addWidget(self.login_view)
         
-        # Create main app view (will be shown after login)
         self.app_view = QWidget()
         self.setup_app_view()
         self.stacked_widget.addWidget(self.app_view)
         
-        # Show login view initially
         self.stacked_widget.setCurrentWidget(self.login_view)
         
-        # Add F5 shortcut for manual refresh
         self.refresh_shortcut = QShortcut(QKeySequence("F5"), self)
         self.refresh_shortcut.activated.connect(self.manual_refresh)
     
@@ -91,24 +82,21 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Sidebar (will be updated after login)
         self.sidebar = self.create_sidebar()
+        self.sidebar.setMinimumWidth(250)
+        self.sidebar.setMaximumWidth(250)
         layout.addWidget(self.sidebar)
         
-        # Content area
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Top bar
         self.top_bar = self.create_top_bar()
         content_layout.addWidget(self.top_bar)
         
-        # Content stacked widget
         self.content_stack = QStackedWidget()
         content_layout.addWidget(self.content_stack)
         
-        # Add pages
         self.dashboard_view = DashboardView()
         self.classrooms_view = ClassroomsView()
         self.courses_view = CoursesView()
@@ -132,15 +120,34 @@ class MainWindow(QMainWindow):
     def create_sidebar(self) -> QFrame:
         """Create sidebar navigation"""
         sidebar = QFrame()
-        sidebar.setFixedWidth(250)
         sidebar.setStyleSheet(Styles.SIDEBAR)
         
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(10, 20, 10, 20)
         layout.setSpacing(5)
         
-        # Logo/Title
-        title_label = QLabel("📚 Exam Scheduler")
+        header_layout = QHBoxLayout()
+        
+        toggle_btn = QPushButton("☰")
+        toggle_btn.setMaximumWidth(40)
+        toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['primary']};
+                color: {COLORS['white']};
+                border: none;
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['primary_light']};
+            }}
+        """)
+        toggle_btn.clicked.connect(self.toggle_sidebar)
+        header_layout.addWidget(toggle_btn)
+        
+        title_label = QLabel("📚 Sınav Planlama")
         title_label.setStyleSheet(f"""
             QLabel {{
                 color: {COLORS['white']};
@@ -149,35 +156,49 @@ class MainWindow(QMainWindow):
                 padding: 15px;
             }}
         """)
-        layout.addWidget(title_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
         
+        layout.addLayout(header_layout)
         layout.addSpacing(20)
         
-        # Navigation buttons
         self.nav_buttons = []
         
-        # Common pages
-        self.add_nav_button("🏠 Dashboard", 0, layout)
-        self.add_nav_button("🏫 Classrooms", 1, layout)
-        self.add_nav_button("📖 Courses", 2, layout)
-        self.add_nav_button("👨‍🎓 Students", 3, layout)
-        self.add_nav_button("📅 Exam Schedule", 4, layout)
-        self.add_nav_button("💺 Seating Plan", 5, layout)
+        self.add_nav_button("🏠 Gösterge Paneli", 0, layout)
+        self.add_nav_button("🏫 Sınıflar", 1, layout)
+        self.add_nav_button("📖 Dersler", 2, layout)
+        self.add_nav_button("👨‍🎓 Öğrenciler", 3, layout)
+        self.add_nav_button("📅 Sınav Programı", 4, layout)
+        self.add_nav_button("💺 Oturma Düzeni", 5, layout)
         
-        # Admin-only pages (will be added after login if user is admin)
         self.admin_users_btn = None
         self.admin_depts_btn = None
         
         layout.addStretch()
         
-        # Logout button
-        logout_btn = QPushButton("🚪 Logout")
+        logout_btn = QPushButton("🚪 Çıkış")
         logout_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
         logout_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         logout_btn.clicked.connect(self.handle_logout)
         layout.addWidget(logout_btn)
         
         return sidebar
+    
+    def toggle_sidebar(self):
+        if self.sidebar_expanded:
+            self.sidebar.setMinimumWidth(60)
+            self.sidebar.setMaximumWidth(60)
+            self.sidebar_expanded = False
+            for btn in self.nav_buttons:
+                btn.setText("  " + btn.text().split()[-1])
+        else:
+            self.sidebar.setMinimumWidth(250)
+            self.sidebar.setMaximumWidth(250)
+            self.sidebar_expanded = True
+            titles = ["🏠 Gösterge Paneli", "🏫 Sınıflar", "📖 Dersler", "👨‍🎓 Öğrenciler", "📅 Sınav Programı", "💺 Oturma Düzeni"]
+            for i, btn in enumerate(self.nav_buttons):
+                if i < len(titles):
+                    btn.setText(titles[i])
     
     def add_nav_button(self, text: str, index: int, layout: QVBoxLayout):
         """Add navigation button to sidebar"""
@@ -189,7 +210,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn)
         self.nav_buttons.append(btn)
         
-        # Set first button as checked
         if index == 0:
             btn.setChecked(True)
     
@@ -207,14 +227,43 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(top_bar)
         layout.setContentsMargins(30, 0, 30, 0)
         
-        # Page title (will be updated dynamically)
-        self.page_title = QLabel("Dashboard")
+        self.page_title = QLabel("Gösterge Paneli")
         self.page_title.setStyleSheet(Styles.TITLE_LABEL)
         layout.addWidget(self.page_title)
         
         layout.addStretch()
         
-        # User info
+        self.admin_menu_btn = QPushButton("⚙️ Yönetim")
+        self.admin_menu_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['primary']};
+                color: {COLORS['white']};
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-size: 13px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['primary_light']};
+            }}
+        """)
+        self.admin_menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.admin_menu_btn.hide()
+        self.admin_menu = QMenu(self.admin_menu_btn)
+        self.admin_menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {COLORS['white']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+            }}
+            QMenu::item:selected {{
+                background-color: {COLORS['primary_light']};
+            }}
+        """)
+        self.admin_menu_btn.setMenu(self.admin_menu)
+        layout.addWidget(self.admin_menu_btn)
+        
         self.user_label = QLabel()
         self.user_label.setStyleSheet(Styles.NORMAL_LABEL)
         layout.addWidget(self.user_label)
@@ -225,109 +274,87 @@ class MainWindow(QMainWindow):
         """Switch to a different page"""
         self.content_stack.setCurrentIndex(index)
         
-        # Update checked state of navigation buttons
         for i, btn in enumerate(self.nav_buttons):
-            # Safety check: skip if button has been deleted
             try:
                 btn.setChecked(i == index)
             except RuntimeError:
-                # Button was deleted, skip
                 continue
         
-        # Update page title
         user = get_current_user()
-        titles = ["Dashboard", "Classrooms", "Courses", "Students", "Exam Schedule", "Seating Plan"]
+        titles = ["Gösterge Paneli", "Sınıflar", "Dersler", "Öğrenciler", "Sınav Programı", "Oturma Düzeni"]
         if user and user['role'] == 'admin':
-            titles.extend(["Users", "Departments"])
+            titles.extend(["Kullanıcılar", "Bölümler"])
         if index < len(titles):
             self.page_title.setText(titles[index])
         
-        # Refresh data for the selected page
         self.refresh_current_page(index)
     
     def manual_refresh(self):
         """Manually refresh current page (triggered by F5)"""
         if self.stacked_widget.currentWidget() == self.app_view:
             current_index = self.content_stack.currentIndex()
-            self.status_bar.showMessage("🔄 Manual refresh (F5)...")
+            self.status_bar.showMessage("🔄 El ile yenileme (F5)...")
             self.refresh_current_page(current_index)
     
     def refresh_current_page(self, index: int):
         """Refresh data for the current page"""
         try:
-            # Show refreshing message
             if not self.status_bar.currentMessage().startswith("🔄"):
-                self.status_bar.showMessage("🔄 Refreshing data...")
+                self.status_bar.showMessage("🔄 Veriler yenileniyor...")
             
             if index == 0:  # Dashboard
                 self.dashboard_view.load_data()
-                self.status_bar.showMessage("✅ Dashboard updated", 2000)
+                self.status_bar.showMessage("✅ Gösterge paneli güncellendi", 2000)
             elif index == 1:  # Classrooms
                 self.classrooms_view.load_classrooms()
-                self.status_bar.showMessage("✅ Classrooms updated", 2000)
+                self.status_bar.showMessage("✅ Sınıflar güncellendi", 2000)
             elif index == 2:  # Courses
                 self.courses_view.load_courses()
-                self.status_bar.showMessage("✅ Courses updated", 2000)
+                self.status_bar.showMessage("✅ Dersler güncellendi", 2000)
             elif index == 3:  # Students
                 self.students_view.load_students()
-                self.status_bar.showMessage("✅ Students updated", 2000)
+                self.status_bar.showMessage("✅ Öğrenciler güncellendi", 2000)
             elif index == 4:  # Exam Schedule
                 self.exam_schedule_view.load_schedule()
-                self.status_bar.showMessage("✅ Exam schedule updated", 2000)
+                self.status_bar.showMessage("✅ Sınav programı güncellendi", 2000)
             elif index == 5:  # Seating Plan
                 self.seating_plan_view.load_exams()
                 if hasattr(self.seating_plan_view, 'current_exam_id') and self.seating_plan_view.current_exam_id:
                     self.seating_plan_view.load_seating()
-                self.status_bar.showMessage("✅ Seating plan updated", 2000)
+                self.status_bar.showMessage("✅ Oturma düzeni güncellendi", 2000)
             elif index == 6:  # Users (Admin only)
                 self.users_view.load_users()
-                self.status_bar.showMessage("✅ Users updated", 2000)
+                self.status_bar.showMessage("✅ Kullanıcılar güncellendi", 2000)
             elif index == 7:  # Departments (Admin only)
                 self.departments_view.load_departments()
-                self.status_bar.showMessage("✅ Departments updated", 2000)
+                self.status_bar.showMessage("✅ Bölümler güncellendi", 2000)
             
-            # Clear status message after 2 seconds
-            QTimer.singleShot(2000, lambda: self.status_bar.showMessage("Ready | Press F5 to refresh"))
+            QTimer.singleShot(2000, lambda: self.status_bar.showMessage("Hazır | F5 ile yenile"))
         except Exception as e:
-            error_msg = f"❌ Error refreshing data: {str(e)}"
+            error_msg = f"❌ Hata: {str(e)}"
             self.status_bar.showMessage(error_msg, 5000)
-            print(f"Error refreshing page {index}: {e}")
+            print(f"Sayfa {index} yenilenemedi: {e}")
     
     def on_login_successful(self, user: dict):
         """Handle successful login"""
         self.current_user = user
         
-        # Add admin navigation items if user is admin
-        if user['role'] == 'admin' and not self.admin_users_btn:
-            sidebar_layout = self.sidebar.layout()
-            # Insert before logout button (before last widget)
-            insert_index = sidebar_layout.count() - 1
+        if user['role'] == 'admin':
+            self.admin_menu.clear()
+            users_action = self.admin_menu.addAction("👥 Kullanıcılar")
+            users_action.triggered.connect(lambda: self.switch_page(6))
             
-            self.admin_users_btn = QPushButton("👥 Users")
-            self.admin_users_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
-            self.admin_users_btn.setCheckable(True)
-            self.admin_users_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.admin_users_btn.clicked.connect(lambda: self.switch_page(6))
-            sidebar_layout.insertWidget(insert_index, self.admin_users_btn)
-            self.nav_buttons.append(self.admin_users_btn)
+            depts_action = self.admin_menu.addAction("🏢 Bölümler")
+            depts_action.triggered.connect(lambda: self.switch_page(7))
             
-            self.admin_depts_btn = QPushButton("🏢 Departments")
-            self.admin_depts_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
-            self.admin_depts_btn.setCheckable(True)
-            self.admin_depts_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.admin_depts_btn.clicked.connect(lambda: self.switch_page(7))
-            sidebar_layout.insertWidget(insert_index + 1, self.admin_depts_btn)
-            self.nav_buttons.append(self.admin_depts_btn)
+            self.admin_menu_btn.show()
         
-        # Update user label
-        role_display = "Administrator" if user['role'] == 'admin' else "Coordinator"
+        role_display = "Yönetici" if user['role'] == 'admin' else "Koordinatör"
         dept_display = f" - {user['department_name']}" if user.get('department_name') else ""
         self.user_label.setText(f"👤 {user['name']} ({role_display}){dept_display}")
         
-        # Switch to app view
         self.stacked_widget.setCurrentWidget(self.app_view)
         
-        # Refresh dashboard
         self.dashboard_view.load_data()
     
     def handle_logout(self):
@@ -335,29 +362,12 @@ class MainWindow(QMainWindow):
         logout()
         self.current_user = None
         
-        # Disconnect and remove admin navigation items
-        if self.admin_users_btn:
-            self.admin_users_btn.clicked.disconnect()
-            self.sidebar.layout().removeWidget(self.admin_users_btn)
-            self.admin_users_btn.deleteLater()
-            if self.admin_users_btn in self.nav_buttons:
-                self.nav_buttons.remove(self.admin_users_btn)
-            self.admin_users_btn = None
+        self.admin_menu.clear()
+        self.admin_menu_btn.hide()
         
-        if self.admin_depts_btn:
-            self.admin_depts_btn.clicked.disconnect()
-            self.sidebar.layout().removeWidget(self.admin_depts_btn)
-            self.admin_depts_btn.deleteLater()
-            if self.admin_depts_btn in self.nav_buttons:
-                self.nav_buttons.remove(self.admin_depts_btn)
-            self.admin_depts_btn = None
-        
-        # Clear login form
         self.login_view.clear_form()
         
-        # Switch back to login view
         self.stacked_widget.setCurrentWidget(self.login_view)
         
-        # Reset to dashboard
         self.switch_page(0)
 

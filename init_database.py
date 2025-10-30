@@ -6,7 +6,6 @@ Creates a fresh database with the new design
 import sys
 import os
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.database.db_manager import db_manager

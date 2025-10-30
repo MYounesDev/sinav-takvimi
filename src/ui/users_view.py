@@ -10,7 +10,6 @@ from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user, AuthService
 from src.utils.styles import Styles
 
-
 class UsersView(QWidget):
     """Users management view (Admin only)"""
     
@@ -25,7 +24,6 @@ class UsersView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("User Management")
@@ -34,14 +32,12 @@ class UsersView(QWidget):
         
         top_bar.addStretch()
         
-        # Add user button
         add_btn = QPushButton("➕ Add User")
         add_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         add_btn.clicked.connect(self.add_user)
         top_bar.addWidget(add_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -50,7 +46,6 @@ class UsersView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Search bar
         search_bar = QHBoxLayout()
         search_label = QLabel("🔍 Search:")
         search_label.setStyleSheet(Styles.NORMAL_LABEL)
@@ -64,7 +59,6 @@ class UsersView(QWidget):
         
         layout.addLayout(search_bar)
         
-        # Table
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels([
@@ -77,7 +71,6 @@ class UsersView(QWidget):
         self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
@@ -95,7 +88,6 @@ class UsersView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Load data
         self.load_users()
     
     def load_users(self):
@@ -114,12 +106,10 @@ class UsersView(QWidget):
     
     def populate_table(self, users):
         """Populate table with user data"""
-        # Disable sorting while populating
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(users))
         
         for row, user in enumerate(users):
-            # Show display_id to user, but keep internal id for operations
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(user['display_id']))
             id_item.setData(Qt.ItemDataRole.UserRole, user['id'])  # Store real ID
@@ -137,7 +127,6 @@ class UsersView(QWidget):
             created = user['created_at'] or "N/A"
             self.table.setItem(row, 5, QTableWidgetItem(str(created)))
         
-        # Re-enable sorting
         self.table.setSortingEnabled(True)
     
     def filter_users(self):
@@ -145,14 +134,11 @@ class UsersView(QWidget):
         search_text = self.search_input.text().lower()
         
         if not search_text:
-            # Show all users
             self.populate_table(self.all_users)
             return
         
-        # Filter users
         filtered = []
         for user in self.all_users:
-            # Search in display_id, name, and email
             if (str(user['display_id']).lower().find(search_text) != -1 or
                 user['name'].lower().find(search_text) != -1 or
                 user['email'].lower().find(search_text) != -1):
@@ -173,10 +159,8 @@ class UsersView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a user to edit")
             return
         
-        # Get internal id from hidden data
         user_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
-        # Get user data
         query = """
             SELECT u.*, d.name as department_name, d.code as department_code
             FROM users u
@@ -197,18 +181,15 @@ class UsersView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a user to delete")
             return
         
-        # Get internal id from hidden data
         user_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         user_name = self.table.item(row, 1).text()
         user_role = self.table.item(row, 3).text()
         
-        # Prevent deleting own account
         current_user = get_current_user()
         if current_user and current_user['id'] == user_id:
             QMessageBox.warning(self, "Cannot Delete", "You cannot delete your own account!")
             return
         
-        # Prevent deleting last admin
         if user_role == "Administrator":
             admin_count = db_manager.execute_query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
             if admin_count[0]['count'] <= 1:
@@ -227,7 +208,6 @@ class UsersView(QWidget):
             db_manager.execute_update(query, (user_id,))
             QMessageBox.information(self, "Success", "User deleted successfully!")
             self.load_users()
-
 
 class UserDialog(QDialog):
     """Dialog for adding/editing users"""
@@ -248,17 +228,14 @@ class UserDialog(QDialog):
         form_layout = QFormLayout()
         form_layout.setSpacing(15)
         
-        # Name
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Name:", self.name_input)
         
-        # Email
         self.email_input = QLineEdit()
         self.email_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Email:", self.email_input)
         
-        # Password (only for new users)
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setStyleSheet(Styles.LINE_EDIT)
@@ -269,7 +246,6 @@ class UserDialog(QDialog):
         if self.is_edit:
             form_layout.addRow("New Password (optional):", self.password_input)
         
-        # Role
         self.role_combo = QComboBox()
         self.role_combo.setStyleSheet(Styles.COMBO_BOX)
         self.role_combo.addItem("Coordinator", "coordinator")
@@ -277,7 +253,6 @@ class UserDialog(QDialog):
         self.role_combo.currentIndexChanged.connect(self.on_role_changed)
         form_layout.addRow("Role:", self.role_combo)
         
-        # Department (only for coordinators)
         self.dept_combo = QComboBox()
         self.dept_combo.setStyleSheet(Styles.COMBO_BOX)
         self.dept_combo.addItem("N/A", None)
@@ -288,7 +263,6 @@ class UserDialog(QDialog):
         
         layout.addLayout(form_layout)
         
-        # Load existing data if editing
         if self.is_edit:
             self.name_input.setText(self.user_data['name'])
             self.email_input.setText(self.user_data['email'])
@@ -303,7 +277,6 @@ class UserDialog(QDialog):
                 if dept_index >= 0:
                     self.dept_combo.setCurrentIndex(dept_index)
         
-        # Buttons
         button_layout = QHBoxLayout()
         
         save_btn = QPushButton("Save")
@@ -318,13 +291,11 @@ class UserDialog(QDialog):
         
         layout.addLayout(button_layout)
         
-        # Set initial state
         self.on_role_changed()
     
     def on_role_changed(self):
         """Handle role change"""
         role = self.role_combo.currentData()
-        # Admin should not have department
         if role == 'admin':
             self.dept_combo.setCurrentIndex(0)  # Set to N/A
             self.dept_combo.setEnabled(False)
@@ -344,10 +315,8 @@ class UserDialog(QDialog):
         
         try:
             if self.is_edit:
-                # Update existing user
                 user_id = self.user_data['id']
                 
-                # Check if password should be updated
                 password = self.password_input.text().strip()
                 if password:
                     hashed_password = AuthService.hash_password(password)
@@ -367,13 +336,11 @@ class UserDialog(QDialog):
                 
                 QMessageBox.information(self, "Success", "User updated successfully!")
             else:
-                # Create new user
                 password = self.password_input.text().strip()
                 if not password:
                     QMessageBox.warning(self, "Validation Error", "Password is required for new users")
                     return
                 
-                # Get next available display_id
                 display_id = db_manager.get_next_display_id('users')
                 hashed_password = AuthService.hash_password(password)
                 query = """

@@ -6,7 +6,6 @@ import bcrypt
 from typing import Optional, Dict
 from src.database.db_manager import db_manager
 
-
 class AuthService:
     """Handle user authentication"""
     
@@ -37,7 +36,6 @@ class AuthService:
         user_row = results[0]
         stored_password = user_row['password']
         
-        # Verify password
         if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
             return {
                 'id': user_row['id'],
@@ -88,25 +86,19 @@ class AuthService:
         
         return db_manager.execute_update(query, (name, email, hashed_password, role, department_id))
 
-
-# Current logged-in user (global state)
 current_user: Optional[Dict] = None
-
 
 def set_current_user(user: Dict):
     """Set the currently logged-in user"""
     global current_user
     current_user = user
 
-
 def get_current_user() -> Optional[Dict]:
     """Get the currently logged-in user"""
     return current_user
-
 
 def logout():
     """Logout the current user"""
     global current_user
     current_user = None
-
 

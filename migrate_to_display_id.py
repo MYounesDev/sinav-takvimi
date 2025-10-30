@@ -12,7 +12,6 @@ import shutil
 from datetime import datetime
 from config import DATABASE_PATH
 
-
 def backup_database():
     """Create a backup of the current database"""
     if not os.path.exists(DATABASE_PATH):
@@ -24,7 +23,6 @@ def backup_database():
     print(f"✓ Database backed up to: {backup_path}")
     return True
 
-
 def migrate_database():
     """Migrate existing database to new schema with display_id"""
     
@@ -32,7 +30,6 @@ def migrate_database():
     print("DATABASE MIGRATION - Adding display_id Support")
     print("=" * 70)
     
-    # Backup first
     has_existing = backup_database()
     
     if not has_existing:
@@ -44,11 +41,10 @@ def migrate_database():
     
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = OFF")  # Disable temporarily for migration
+    conn.execute("PRAGMA foreign_keys = OFF")  
     cursor = conn.cursor()
     
     try:
-        # Step 1: Create deleted_ids table
         print("\n[1/9] Creating deleted_ids tracking table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deleted_ids (
@@ -62,20 +58,17 @@ def migrate_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_deleted_ids_table ON deleted_ids(table_name, display_id)")
         print("  ✓ deleted_ids table created")
         
-        # Step 2: Migrate departments table
         print("\n[2/9] Migrating departments table...")
         cursor.execute("PRAGMA table_info(departments)")
         columns = [col[1] for col in cursor.fetchall()]
         
         if 'display_id' not in columns:
             cursor.execute("ALTER TABLE departments ADD COLUMN display_id INTEGER")
-            # Set display_id = id for existing records
             cursor.execute("UPDATE departments SET display_id = id WHERE display_id IS NULL")
             print("  ✓ Added display_id to departments")
         else:
             print("  ✓ display_id already exists in departments")
         
-        # Step 3: Migrate users table
         print("\n[3/9] Migrating users table...")
         cursor.execute("PRAGMA table_info(users)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -87,14 +80,12 @@ def migrate_database():
         else:
             print("  ✓ display_id already exists in users")
         
-        # Step 4: Migrate classrooms table
         print("\n[4/9] Migrating classrooms table...")
         cursor.execute("PRAGMA table_info(classrooms)")
         columns = [col[1] for col in cursor.fetchall()]
         
         if 'display_id' not in columns:
             cursor.execute("ALTER TABLE classrooms ADD COLUMN display_id INTEGER")
-            # For department-scoped tables, reset numbering per department
             cursor.execute("""
                 WITH numbered AS (
                     SELECT id, department_id,
@@ -111,7 +102,6 @@ def migrate_database():
         else:
             print("  ✓ display_id already exists in classrooms")
         
-        # Step 5: Migrate courses table
         print("\n[5/9] Migrating courses table...")
         cursor.execute("PRAGMA table_info(courses)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -134,7 +124,6 @@ def migrate_database():
         else:
             print("  ✓ display_id already exists in courses")
         
-        # Step 6: Migrate students table
         print("\n[6/9] Migrating students table...")
         cursor.execute("PRAGMA table_info(students)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -157,7 +146,6 @@ def migrate_database():
         else:
             print("  ✓ display_id already exists in students")
         
-        # Step 7: Migrate exams table
         print("\n[7/9] Migrating exams table...")
         cursor.execute("PRAGMA table_info(exams)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -180,7 +168,6 @@ def migrate_database():
         else:
             print("  ✓ display_id already exists in exams")
         
-        # Step 8: Create triggers
         print("\n[8/9] Creating triggers for display_id recycling...")
         
         triggers = [
@@ -203,7 +190,6 @@ def migrate_database():
             """)
         print("  ✓ All triggers created")
         
-        # Step 9: Create indexes
         print("\n[9/9] Creating indexes for display_id columns...")
         indexes = [
             ("idx_users_display_id", "users", "display_id"),
@@ -218,10 +204,8 @@ def migrate_database():
             cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}({column})")
         print("  ✓ All indexes created")
         
-        # Commit all changes
         conn.commit()
         
-        # Re-enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON")
         
         print("\n" + "=" * 70)
@@ -243,7 +227,6 @@ def migrate_database():
         raise
     finally:
         conn.close()
-
 
 def verify_migration():
     """Verify that migration was successful"""
@@ -290,7 +273,6 @@ def verify_migration():
         print(f"\n✗ Verification error: {str(e)}")
     finally:
         conn.close()
-
 
 if __name__ == "__main__":
     try:

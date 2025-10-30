@@ -4,18 +4,15 @@ UI Styling Utilities
 
 from config import COLORS
 
-
 class Styles:
     """Centralized styling definitions"""
     
-    # Main Window Styles
     MAIN_WINDOW = f"""
         QMainWindow {{
             background-color: {COLORS['light']};
         }}
     """
     
-    # Button Styles
     PRIMARY_BUTTON = f"""
         QPushButton {{
             background-color: {COLORS['primary']};
@@ -27,10 +24,10 @@ class Styles:
             font-weight: bold;
         }}
         QPushButton:hover {{
-            background-color: #3A7BC8;
+            background-color: {COLORS['primary_light']};
         }}
         QPushButton:pressed {{
-            background-color: #2A6BB8;
+            background-color: {COLORS['primary_dark']};
         }}
         QPushButton:disabled {{
             background-color: #CCCCCC;
@@ -53,7 +50,7 @@ class Styles:
             color: {COLORS['white']};
         }}
         QPushButton:pressed {{
-            background-color: #2A6BB8;
+            background-color: {COLORS['primary_dark']};
             color: {COLORS['white']};
         }}
     """
@@ -69,16 +66,16 @@ class Styles:
             font-weight: bold;
         }}
         QPushButton:hover {{
-            background-color: #E63E40;
+            background-color: #C0392B;
         }}
         QPushButton:pressed {{
-            background-color: #D62E30;
+            background-color: #A93226;
         }}
     """
     
     SUCCESS_BUTTON = f"""
         QPushButton {{
-            background-color: {COLORS['success']};
+            background-color: {COLORS['primary']};
             color: {COLORS['white']};
             border: none;
             border-radius: 8px;
@@ -87,14 +84,13 @@ class Styles:
             font-weight: bold;
         }}
         QPushButton:hover {{
-            background-color: #42A310;
+            background-color: {COLORS['primary_light']};
         }}
         QPushButton:pressed {{
-            background-color: #329300;
+            background-color: {COLORS['primary_dark']};
         }}
     """
     
-    # Input Styles
     LINE_EDIT = f"""
         QLineEdit {{
             background-color: {COLORS['white']};
@@ -106,6 +102,7 @@ class Styles:
         }}
         QLineEdit:focus {{
             border-color: {COLORS['primary']};
+            background-color: {COLORS['white']};
         }}
         QLineEdit:disabled {{
             background-color: {COLORS['light']};
@@ -133,7 +130,7 @@ class Styles:
             image: none;
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
-            border-top: 5px solid {COLORS['text']};
+            border-top: 5px solid {COLORS['primary']};
             margin-right: 10px;
         }}
     """
@@ -152,7 +149,6 @@ class Styles:
         }}
     """
     
-    # Table Styles
     TABLE_WIDGET = f"""
         QTableWidget {{
             background-color: {COLORS['white']};
@@ -170,7 +166,7 @@ class Styles:
             color: {COLORS['white']};
         }}
         QHeaderView::section {{
-            background-color: {COLORS['dark']};
+            background-color: {COLORS['primary']};
             color: {COLORS['white']};
             padding: 10px;
             border: none;
@@ -178,10 +174,9 @@ class Styles:
         }}
     """
     
-    # Label Styles
     TITLE_LABEL = f"""
         QLabel {{
-            color: {COLORS['dark']};
+            color: {COLORS['primary']};
             font-size: 24px;
             font-weight: bold;
         }}
@@ -202,7 +197,6 @@ class Styles:
         }}
     """
     
-    # Card/Panel Styles
     CARD = f"""
         QFrame {{
             background-color: {COLORS['white']};
@@ -211,10 +205,9 @@ class Styles:
         }}
     """
     
-    # Sidebar Styles
     SIDEBAR = f"""
         QFrame {{
-            background-color: {COLORS['dark']};
+            background-color: {COLORS['primary']};
             border: none;
         }}
     """
@@ -230,14 +223,15 @@ class Styles:
             font-size: 14px;
         }}
         QPushButton:hover {{
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid {COLORS['white']};
         }}
         QPushButton:checked {{
-            background-color: {COLORS['primary']};
+            background-color: {COLORS['primary_light']};
+            border-left: 4px solid {COLORS['white']};
         }}
     """
     
-    # Scroll Area
     SCROLL_AREA = f"""
         QScrollArea {{
             border: none;
@@ -245,7 +239,6 @@ class Styles:
         }}
     """
     
-    # Message Box
     MESSAGE_BOX = f"""
         QMessageBox {{
             background-color: {COLORS['white']};
@@ -263,10 +256,9 @@ class Styles:
             min-width: 80px;
         }}
         QMessageBox QPushButton:hover {{
-            background-color: #3A7BC8;
+            background-color: {COLORS['primary_light']};
         }}
     """
-
 
 def apply_shadow(widget):
     """
@@ -284,5 +276,4 @@ def apply_shadow(widget):
     shadow.setYOffset(4)
     shadow.setColor(QColor(0, 0, 0, 30))
     widget.setGraphicsEffect(shadow)
-
 

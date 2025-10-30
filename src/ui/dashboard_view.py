@@ -10,7 +10,6 @@ from src.utils.auth import get_current_user
 from src.utils.styles import Styles, apply_shadow
 from config import COLORS
 
-
 class DashboardView(QWidget):
     """Dashboard with statistics and overview"""
     
@@ -24,12 +23,10 @@ class DashboardView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Welcome message
         welcome_label = QLabel("Welcome to Exam Scheduler")
         welcome_label.setStyleSheet(Styles.TITLE_LABEL)
         layout.addWidget(welcome_label)
         
-        # Statistics cards
         stats_layout = QGridLayout()
         stats_layout.setSpacing(20)
         
@@ -59,12 +56,10 @@ class DashboardView(QWidget):
                 border: 1px solid {COLORS['border']};
             }}
         """)
-        # apply_shadow(card)  # Temporarily disabled due to QPainter conflicts
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # Icon and value
         top_layout = QHBoxLayout()
         
         icon_label = QLabel(icon)
@@ -86,7 +81,6 @@ class DashboardView(QWidget):
         
         layout.addLayout(top_layout)
         
-        # Title
         title_label = QLabel(title)
         title_label.setStyleSheet(f"""
             QLabel {{
@@ -96,7 +90,6 @@ class DashboardView(QWidget):
         """)
         layout.addWidget(title_label)
         
-        # Store value label for updates
         card.value_label = value_label
         
         return card
@@ -109,22 +102,18 @@ class DashboardView(QWidget):
         
         dept_filter = "" if user['role'] == 'admin' else f"WHERE department_id = {user['department_id']}"
         
-        # Count classrooms
         query = f"SELECT COUNT(*) as count FROM classrooms {dept_filter}"
         result = db_manager.execute_query(query)
         self.classrooms_card.value_label.setText(str(result[0]['count']))
         
-        # Count courses
         query = f"SELECT COUNT(*) as count FROM courses {dept_filter}"
         result = db_manager.execute_query(query)
         self.courses_card.value_label.setText(str(result[0]['count']))
         
-        # Count students
         query = f"SELECT COUNT(*) as count FROM students {dept_filter}"
         result = db_manager.execute_query(query)
         self.students_card.value_label.setText(str(result[0]['count']))
         
-        # Count exams
         query = f"SELECT COUNT(*) as count FROM exams {dept_filter}"
         result = db_manager.execute_query(query)
         self.exams_card.value_label.setText(str(result[0]['count']))

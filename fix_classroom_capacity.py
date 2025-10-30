@@ -6,7 +6,6 @@ Capacity should be: rows × cols × seats_per_desk
 import sqlite3
 from pathlib import Path
 
-# Database path
 db_path = Path("database/exam_scheduler.db")
 
 if not db_path.exists():
@@ -17,7 +16,6 @@ try:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Get all classrooms
     cursor.execute("SELECT id, name, rows, cols, seats_per_desk, capacity FROM classrooms")
     classrooms = cursor.fetchall()
     
@@ -30,7 +28,6 @@ try:
     
     updated_count = 0
     for classroom_id, name, rows, cols, seats_per_desk, old_capacity in classrooms:
-        # Calculate correct capacity
         correct_capacity = rows * cols * seats_per_desk
         
         if old_capacity != correct_capacity:
@@ -40,7 +37,6 @@ try:
             print(f"   New capacity: {correct_capacity} ✅")
             print()
             
-            # Update capacity
             cursor.execute(
                 "UPDATE classrooms SET capacity = ? WHERE id = ?",
                 (correct_capacity, classroom_id)

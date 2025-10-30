@@ -11,11 +11,9 @@ from src.utils.styles import Styles, apply_shadow
 from src.utils.animations import AnimationHelper
 from config import COLORS
 
-
 class LoginView(QWidget):
     """Login screen widget"""
     
-    # Signal emitted when login is successful
     login_successful = pyqtSignal(dict)
     
     def __init__(self):
@@ -24,39 +22,31 @@ class LoginView(QWidget):
         
     def init_ui(self):
         """Initialize the UI components"""
-        # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Center the login form
         center_widget = QWidget()
         center_layout = QVBoxLayout(center_widget)
         center_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Login card
         login_card = self.create_login_card()
         center_layout.addWidget(login_card)
         
         main_layout.addWidget(center_widget)
         
-        # Set background
         self.setStyleSheet(f"QWidget {{ background-color: {COLORS['light']}; }}")
         
-        # Apply entrance animation (disabled due to QPainter conflicts)
-        # AnimationHelper.fade_in(self, 500)
     
     def create_login_card(self) -> QFrame:
         """Create the login form card"""
         card = QFrame()
         card.setFixedWidth(450)
         card.setStyleSheet(Styles.CARD)
-        # apply_shadow(card)  # Temporarily disabled due to QPainter conflicts
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(20)
         
-        # Logo/Title
         title = QLabel("Exam Scheduler")
         title.setStyleSheet(f"""
             QLabel {{
@@ -68,7 +58,6 @@ class LoginView(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
-        # Subtitle
         subtitle = QLabel("Kocaeli University")
         subtitle.setStyleSheet(f"""
             QLabel {{
@@ -81,7 +70,6 @@ class LoginView(QWidget):
         
         layout.addSpacing(20)
         
-        # Email input
         email_label = QLabel("Email")
         email_label.setStyleSheet(Styles.NORMAL_LABEL)
         layout.addWidget(email_label)
@@ -92,7 +80,6 @@ class LoginView(QWidget):
         self.email_input.returnPressed.connect(self.handle_login)
         layout.addWidget(self.email_input)
         
-        # Password input
         password_label = QLabel("Password")
         password_label.setStyleSheet(Styles.NORMAL_LABEL)
         layout.addWidget(password_label)
@@ -106,14 +93,12 @@ class LoginView(QWidget):
         
         layout.addSpacing(10)
         
-        # Login button
         self.login_btn = QPushButton("Login")
         self.login_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         self.login_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.login_btn.clicked.connect(self.handle_login)
         layout.addWidget(self.login_btn)
         
-        # Default credentials hint
         hint_label = QLabel("Admin: admin@gmail.com / admin123")
         hint_label.setStyleSheet(f"""
             QLabel {{
@@ -125,7 +110,6 @@ class LoginView(QWidget):
         hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(hint_label)
         
-        # Coordinators hint
         coord_hint = QLabel("Koordinatörler: bilgisayar@gmail.com, yazilim@gmail.com")
         coord_hint.setStyleSheet(f"""
             QLabel {{
@@ -148,19 +132,15 @@ class LoginView(QWidget):
             self.show_error("Please enter both email and password")
             return
         
-        # Attempt login
         user = AuthService.login(email, password)
         
         if user:
             set_current_user(user)
             
-            # Fade out and emit signal (disabled due to QPainter conflicts)
-            # AnimationHelper.fade_out(self, 300, lambda: self.login_successful.emit(user))
             self.login_successful.emit(user)
         else:
             self.show_error("Invalid email or password")
             self.password_input.clear()
-            # AnimationHelper.bounce(self.sender().parent() if hasattr(self.sender(), 'parent') else self)
     
     def show_error(self, message: str):
         """Show error message"""

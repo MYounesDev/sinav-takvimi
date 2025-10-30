@@ -10,7 +10,6 @@ from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
 from src.utils.styles import Styles
 
-
 class DepartmentsView(QWidget):
     """Departments management view (Admin only)"""
     
@@ -24,7 +23,6 @@ class DepartmentsView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("Department Management")
@@ -33,14 +31,12 @@ class DepartmentsView(QWidget):
         
         top_bar.addStretch()
         
-        # Add department button
         add_btn = QPushButton("➕ Add Department")
         add_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         add_btn.clicked.connect(self.add_department)
         top_bar.addWidget(add_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -49,7 +45,6 @@ class DepartmentsView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Table
         self.table = QTableWidget()
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels([
@@ -61,7 +56,6 @@ class DepartmentsView(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
@@ -79,7 +73,6 @@ class DepartmentsView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Load data
         self.load_departments()
     
     def load_departments(self):
@@ -95,9 +88,7 @@ class DepartmentsView(QWidget):
         self.table.setRowCount(len(departments))
         
         for row, dept in enumerate(departments):
-            # Show display_id to user, but keep internal id for operations
             self.table.setItem(row, 0, QTableWidgetItem(str(dept['display_id'])))
-            # Store the internal id as hidden data
             self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, dept['id'])
             self.table.setItem(row, 1, QTableWidgetItem(dept['name']))
             self.table.setItem(row, 2, QTableWidgetItem(dept['code']))
@@ -117,10 +108,8 @@ class DepartmentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a department to edit")
             return
         
-        # Get internal id from hidden data
         dept_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
-        # Get department data
         query = "SELECT * FROM departments WHERE id = ?"
         result = db_manager.execute_query(query, (dept_id,))
         
@@ -136,11 +125,9 @@ class DepartmentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a department to delete")
             return
         
-        # Get internal id from hidden data
         dept_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         dept_name = self.table.item(row, 1).text()
         
-        # Warn user about CASCADE DELETE
         reply = QMessageBox.warning(
             self, "Confirm Delete",
             f"Are you sure you want to delete department '{dept_name}'?\n\n"
@@ -166,7 +153,6 @@ class DepartmentsView(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete department: {str(e)}")
 
-
 class DepartmentDialog(QDialog):
     """Dialog for adding/editing departments"""
     
@@ -186,25 +172,21 @@ class DepartmentDialog(QDialog):
         form_layout = QFormLayout()
         form_layout.setSpacing(15)
         
-        # Name
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Name:", self.name_input)
         
-        # Code
         self.code_input = QLineEdit()
         self.code_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Code:", self.code_input)
         
         layout.addLayout(form_layout)
         
-        # Load existing data if editing
         if self.is_edit:
             self.name_input.setText(self.dept_data['name'])
             self.code_input.setText(self.dept_data['code'])
             self.code_input.setReadOnly(True)  # Code cannot be changed after creation
         
-        # Buttons
         button_layout = QHBoxLayout()
         
         save_btn = QPushButton("Save")
@@ -234,7 +216,6 @@ class DepartmentDialog(QDialog):
                 db_manager.execute_update(query, (name, self.dept_data['id']))
                 QMessageBox.information(self, "Success", "Department updated successfully!")
             else:
-                # Get next available display_id
                 display_id = db_manager.get_next_display_id('departments')
                 query = "INSERT INTO departments (display_id, name, code) VALUES (?, ?, ?)"
                 db_manager.execute_update(query, (display_id, name, code))

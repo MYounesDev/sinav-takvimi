@@ -8,7 +8,6 @@ import bcrypt
 import sys
 from config import DATABASE_PATH
 
-# Fix Windows console encoding
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -19,7 +18,6 @@ def add_coordinators():
     cursor = conn.cursor()
     
     try:
-        # Get existing departments
         cursor.execute("SELECT id, name, code FROM departments")
         departments = cursor.fetchall()
         
@@ -29,7 +27,6 @@ def add_coordinators():
         for dept in departments:
             print(f"  - {dept['name']} ({dept['code']})")
         
-        # Define coordinators
         coordinators = [
             ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
             ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
@@ -37,7 +34,6 @@ def add_coordinators():
 
         ]
         
-        # Default password: admin123
         default_password = 'admin123'
         hashed_password = bcrypt.hashpw(
             default_password.encode('utf-8'),
@@ -50,7 +46,6 @@ def add_coordinators():
             if dept_code not in dept_map:
                 print(f"  ⚠️  Department {dept_code} not found. Creating it...")
                 
-                # Create department mapping
                 dept_names = {
                     'BİLGİSAYAR': 'Bilgisayar Mühendisliği',
                     'YAZILIM': 'Yazılım Mühendisliği',
@@ -68,7 +63,6 @@ def add_coordinators():
             
             dept_id = dept_map[dept_code]
             
-            # Check if coordinator already exists
             cursor.execute("""
                 SELECT id FROM users 
                 WHERE email = ?
@@ -77,7 +71,6 @@ def add_coordinators():
             existing = cursor.fetchone()
             
             if existing:
-                # Update existing coordinator
                 cursor.execute("""
                     UPDATE users 
                     SET name = ?, department_id = ?, role = 'coordinator'
@@ -85,7 +78,6 @@ def add_coordinators():
                 """, (coord_name, dept_id, coord_email))
                 print(f"  ✓ Updated: {coord_name} ({coord_email})")
             else:
-                # Create new coordinator
                 cursor.execute("""
                     INSERT INTO users (name, email, password, role, department_id)
                     VALUES (?, ?, ?, ?, ?)
@@ -100,7 +92,6 @@ def add_coordinators():
         
         conn.commit()
         
-        # Display all coordinators
         print("\n" + "="*60)
         print("COORDINATOR ACCOUNTS:")
         print("="*60)
@@ -131,7 +122,6 @@ def add_coordinators():
         raise
     finally:
         conn.close()
-
 
 if __name__ == '__main__':
     print("="*60)

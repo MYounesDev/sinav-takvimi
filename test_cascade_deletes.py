@@ -6,7 +6,6 @@ This demonstrates that deleting a department cascades to all related records
 import sqlite3
 import os
 
-
 def test_cascade_deletes():
     """Test that CASCADE deletes work correctly"""
     
@@ -14,10 +13,8 @@ def test_cascade_deletes():
     print("Testing CASCADE DELETE Functionality")
     print("=" * 60)
     
-    # Create a test database
     test_db = "test_cascade.db"
     
-    # Clean up any existing test database
     if os.path.exists(test_db):
         os.remove(test_db)
     
@@ -25,7 +22,6 @@ def test_cascade_deletes():
     conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign keys
     cursor = conn.cursor()
     
-    # Create tables with CASCADE
     print("\n1. Creating tables with CASCADE constraints...")
     print("-" * 60)
     
@@ -79,37 +75,31 @@ def test_cascade_deletes():
     
     print("  Tables created successfully!")
     
-    # Insert test data
     print("\n2. Inserting test data...")
     print("-" * 60)
     
-    # Insert department
     cursor.execute("INSERT INTO departments (name, code) VALUES (?, ?)", ("Test Department", "TEST"))
     dept_id = cursor.lastrowid
     print(f"  Created department: ID={dept_id}, Name=Test Department")
     
-    # Insert users
     cursor.execute("INSERT INTO users (name, email, department_id) VALUES (?, ?, ?)", 
                    ("User 1", "user1@test.com", dept_id))
     cursor.execute("INSERT INTO users (name, email, department_id) VALUES (?, ?, ?)", 
                    ("User 2", "user2@test.com", dept_id))
     print(f"  Created 2 users")
     
-    # Insert courses
     cursor.execute("INSERT INTO courses (code, name, department_id) VALUES (?, ?, ?)", 
                    ("CS101", "Computer Science 101", dept_id))
     cursor.execute("INSERT INTO courses (code, name, department_id) VALUES (?, ?, ?)", 
                    ("CS102", "Computer Science 102", dept_id))
     print(f"  Created 2 courses")
     
-    # Insert students
     cursor.execute("INSERT INTO students (student_no, name, department_id) VALUES (?, ?, ?)", 
                    ("S001", "Student 1", dept_id))
     cursor.execute("INSERT INTO students (student_no, name, department_id) VALUES (?, ?, ?)", 
                    ("S002", "Student 2", dept_id))
     print(f"  Created 2 students")
     
-    # Insert classrooms
     cursor.execute("INSERT INTO classrooms (code, name, department_id) VALUES (?, ?, ?)", 
                    ("C101", "Classroom 101", dept_id))
     cursor.execute("INSERT INTO classrooms (code, name, department_id) VALUES (?, ?, ?)", 
@@ -118,7 +108,6 @@ def test_cascade_deletes():
     
     conn.commit()
     
-    # Count records before deletion
     print("\n3. Before deletion - Record counts:")
     print("-" * 60)
     cursor.execute("SELECT COUNT(*) FROM departments")
@@ -138,14 +127,12 @@ def test_cascade_deletes():
     print(f"  Students: {student_count}")
     print(f"  Classrooms: {classroom_count}")
     
-    # Delete the department
     print("\n4. Deleting department (ID={})...".format(dept_id))
     print("-" * 60)
     cursor.execute("DELETE FROM departments WHERE id = ?", (dept_id,))
     conn.commit()
     print("  Department deleted!")
     
-    # Count records after deletion
     print("\n5. After deletion - Record counts:")
     print("-" * 60)
     cursor.execute("SELECT COUNT(*) FROM departments")
@@ -165,7 +152,6 @@ def test_cascade_deletes():
     print(f"  Students: {student_count_after}")
     print(f"  Classrooms: {classroom_count_after}")
     
-    # Verify CASCADE worked
     print("\n" + "=" * 60)
     success = True
     if dept_count_after != 0:
@@ -194,11 +180,9 @@ def test_cascade_deletes():
         print("  - All classrooms in department automatically deleted")
     print("=" * 60)
     
-    # Clean up
     conn.close()
     os.remove(test_db)
     print("\nTest database cleaned up")
-
 
 def test_classroom_cascade():
     """Test that deleting a classroom cascades to exam tables"""
@@ -216,7 +200,6 @@ def test_classroom_cascade():
     conn.execute("PRAGMA foreign_keys = ON")
     cursor = conn.cursor()
     
-    # Create tables
     cursor.execute("CREATE TABLE classrooms (id INTEGER PRIMARY KEY, code TEXT)")
     cursor.execute("""
         CREATE TABLE exam_classrooms (
@@ -235,7 +218,6 @@ def test_classroom_cascade():
         )
     """)
     
-    # Insert data
     cursor.execute("INSERT INTO classrooms (code) VALUES (?)", ("C101",))
     classroom_id = cursor.lastrowid
     
@@ -245,7 +227,6 @@ def test_classroom_cascade():
     
     conn.commit()
     
-    # Count before
     cursor.execute("SELECT COUNT(*) FROM exam_classrooms")
     before_count = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM exam_seating")
@@ -255,11 +236,9 @@ def test_classroom_cascade():
     print(f"  exam_classrooms: {before_count}")
     print(f"  exam_seating: {before_seating}")
     
-    # Delete classroom
     cursor.execute("DELETE FROM classrooms WHERE id = ?", (classroom_id,))
     conn.commit()
     
-    # Count after
     cursor.execute("SELECT COUNT(*) FROM exam_classrooms")
     after_count = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM exam_seating")
@@ -279,12 +258,9 @@ def test_classroom_cascade():
     conn.close()
     os.remove(test_db)
 
-
 if __name__ == "__main__":
-    # Test department cascade
     test_cascade_deletes()
     
-    # Test classroom cascade
     test_classroom_cascade()
     
     print("\n" + "=" * 60)

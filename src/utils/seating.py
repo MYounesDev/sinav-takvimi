@@ -6,7 +6,6 @@ from typing import List, Dict
 from src.database.db_manager import db_manager
 import random
 
-
 class SeatingPlanGenerator:
     """Generate seating arrangements for exams"""
     
@@ -20,7 +19,6 @@ class SeatingPlanGenerator:
         Returns:
             True if successful, False otherwise
         """
-        # Get exam details
         exam_query = """
             SELECT e.*, c.code as course_code
             FROM exams e
@@ -34,7 +32,6 @@ class SeatingPlanGenerator:
         
         exam = exam_result[0]
         
-        # Get students enrolled in this course
         students_query = """
             SELECT s.id, s.student_no, s.name
             FROM students s
@@ -47,7 +44,6 @@ class SeatingPlanGenerator:
         if not students:
             return False
         
-        # Get assigned classrooms
         classrooms_query = """
             SELECT cl.*
             FROM classrooms cl
@@ -60,23 +56,18 @@ class SeatingPlanGenerator:
         if not classrooms:
             return False
         
-        # Clear existing seating
         db_manager.execute_update("DELETE FROM exam_seating WHERE exam_id = ?", (self.exam_id,))
         
-        # Shuffle students for random seating
         random.shuffle(students)
         
-        # Distribute students across classrooms
         student_idx = 0
         
         for classroom in classrooms:
             if student_idx >= len(students):
                 break
             
-            # Calculate available seats
             total_seats = classroom['rows'] * classroom['cols'] * classroom['seats_per_desk']
             
-            # Assign students to seats
             for row in range(classroom['rows']):
                 for col in range(classroom['cols']):
                     for seat_pos in range(1, classroom['seats_per_desk'] + 1):
@@ -85,7 +76,6 @@ class SeatingPlanGenerator:
                         
                         student = students[student_idx]
                         
-                        # Insert seating assignment
                         query = """
                             INSERT INTO exam_seating 
                             (exam_id, student_id, classroom_id, row, col, seat_position)
@@ -114,7 +104,6 @@ class SeatingPlanGenerator:
         Returns:
             Dictionary with classroom info and seating grid
         """
-        # Get classroom details
         classroom_query = "SELECT * FROM classrooms WHERE id = ?"
         classroom_result = db_manager.execute_query(classroom_query, (classroom_id,))
         
@@ -123,7 +112,6 @@ class SeatingPlanGenerator:
         
         classroom = dict(classroom_result[0])
         
-        # Get seating assignments
         seating_query = """
             SELECT es.*, s.student_no, s.name
             FROM exam_seating es
@@ -133,7 +121,6 @@ class SeatingPlanGenerator:
         """
         seating = list(db_manager.execute_query(seating_query, (self.exam_id, classroom_id)))
         
-        # Create seating grid
         grid = {}
         for seat in seating:
             key = (seat['row'], seat['col'], seat['seat_position'])
@@ -146,5 +133,4 @@ class SeatingPlanGenerator:
         classroom['total_students'] = len(seating)
         
         return classroom
-
 

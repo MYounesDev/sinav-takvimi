@@ -1,3 +1,2 @@
-# Exam Scheduler Package
 
 

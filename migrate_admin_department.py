@@ -8,7 +8,6 @@ from src.database.db_manager import db_manager
 def migrate():
     """Update all admin users to have NULL department_id"""
     try:
-        # Update all admin users to have NULL department_id
         query = """
             UPDATE users 
             SET department_id = NULL 
@@ -20,7 +19,6 @@ def migrate():
         print(f"✅ Migration completed successfully!")
         print(f"   Updated {rows_affected} admin user(s) to have NULL department_id")
         
-        # Verify the update
         admins = db_manager.execute_query("SELECT id, name, email, department_id FROM users WHERE role = 'admin'")
         print(f"\n📋 Current admin users:")
         for admin in admins:

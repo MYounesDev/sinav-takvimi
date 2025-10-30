@@ -6,7 +6,6 @@ This script demonstrates that IDs are reused after deletion
 import sqlite3
 import os
 
-
 def test_id_reuse():
     """Test that IDs are reused after deletion"""
     
@@ -14,17 +13,14 @@ def test_id_reuse():
     print("Testing ID Reuse Functionality")
     print("=" * 60)
     
-    # Create a test database
     test_db = "test_id_reuse.db"
     
-    # Clean up any existing test database
     if os.path.exists(test_db):
         os.remove(test_db)
     
     conn = sqlite3.connect(test_db)
     cursor = conn.cursor()
     
-    # Create a test table WITHOUT AUTOINCREMENT
     cursor.execute("""
         CREATE TABLE test_classrooms (
             id INTEGER PRIMARY KEY,
@@ -35,20 +31,17 @@ def test_id_reuse():
     print("\nTest 1: Initial inserts")
     print("-" * 60)
     
-    # Insert some rows
     for i in range(1, 6):
         cursor.execute("INSERT INTO test_classrooms (name) VALUES (?)", (f"Classroom {i}",))
         print(f"  Inserted: Classroom {i} -> ID = {cursor.lastrowid}")
     
     conn.commit()
     
-    # Show all rows
     print("\nCurrent state:")
     cursor.execute("SELECT * FROM test_classrooms ORDER BY id")
     for row in cursor.fetchall():
         print(f"  ID={row[0]}, Name={row[1]}")
     
-    # Delete some rows
     print("\nTest 2: Deleting rows with ID=2 and ID=4")
     print("-" * 60)
     cursor.execute("DELETE FROM test_classrooms WHERE id IN (2, 4)")
@@ -59,7 +52,6 @@ def test_id_reuse():
     for row in cursor.fetchall():
         print(f"  ID={row[0]}, Name={row[1]}")
     
-    # Insert new rows - they should reuse the deleted IDs
     print("\nTest 3: Inserting new rows")
     print("-" * 60)
     print("Expected: New rows should get ID=2 and ID=4 (reused IDs)")
@@ -79,7 +71,6 @@ def test_id_reuse():
     for row in cursor.fetchall():
         print(f"  ID={row[0]}, Name={row[1]}")
     
-    # Verify ID reuse
     print("\n" + "=" * 60)
     if new_id_1 == 2 and new_id_2 == 4:
         print("SUCCESS! IDs were reused correctly!")
@@ -91,11 +82,9 @@ def test_id_reuse():
         print("\nThis is expected SQLite behavior - let's test a different scenario...")
     print("=" * 60)
     
-    # Clean up
     conn.close()
     os.remove(test_db)
     print("\nTest database cleaned up")
-
 
 def test_id_reuse_max_deleted():
     """Test ID reuse when the maximum ID is deleted"""
@@ -112,7 +101,6 @@ def test_id_reuse_max_deleted():
     conn = sqlite3.connect(test_db)
     cursor = conn.cursor()
     
-    # Create table WITHOUT AUTOINCREMENT
     cursor.execute("""
         CREATE TABLE test_classrooms (
             id INTEGER PRIMARY KEY,
@@ -148,7 +136,6 @@ def test_id_reuse_max_deleted():
     conn.close()
     os.remove(test_db)
 
-
 def test_with_autoincrement():
     """Test to show the old behavior with AUTOINCREMENT"""
     
@@ -156,17 +143,14 @@ def test_with_autoincrement():
     print("Comparison: Behavior WITH AUTOINCREMENT (Old Schema)")
     print("=" * 60)
     
-    # Create a test database
     test_db = "test_autoincrement.db"
     
-    # Clean up any existing test database
     if os.path.exists(test_db):
         os.remove(test_db)
     
     conn = sqlite3.connect(test_db)
     cursor = conn.cursor()
     
-    # Create a test table WITH AUTOINCREMENT (old behavior)
     cursor.execute("""
         CREATE TABLE test_classrooms (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,19 +190,14 @@ def test_with_autoincrement():
     print(f"  - IDs 2 and 4 are NOT reused (this is the old behavior)")
     print("=" * 60)
     
-    # Clean up
     conn.close()
     os.remove(test_db)
 
-
 if __name__ == "__main__":
-    # Test ID reuse (new behavior)
     test_id_reuse()
     
-    # Test ID reuse when max ID is deleted
     test_id_reuse_max_deleted()
     
-    # Show comparison with AUTOINCREMENT (old behavior)
     test_with_autoincrement()
     
     print("\n" + "=" * 60)

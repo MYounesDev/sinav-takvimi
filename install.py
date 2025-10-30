@@ -7,13 +7,11 @@ import subprocess
 import sys
 import os
 
-
 def print_header(text):
     """Print a formatted header"""
     print("\n" + "="*60)
     print(f"  {text}")
     print("="*60)
-
 
 def check_python_version():
     """Check if Python version is 3.12 or higher"""
@@ -30,7 +28,6 @@ def check_python_version():
     print("✅ Python version is compatible")
     return True
 
-
 def install_dependencies():
     """Install required Python packages"""
     print_header("Installing Dependencies")
@@ -44,7 +41,6 @@ def install_dependencies():
         print("❌ Failed to install dependencies")
         return False
 
-
 def create_sample_files():
     """Create sample Excel files"""
     print_header("Creating Sample Files")
@@ -56,7 +52,6 @@ def create_sample_files():
     except subprocess.CalledProcessError:
         print("⚠️ Could not create sample files (optional)")
         return True  # Don't fail if this doesn't work
-
 
 def create_directories():
     """Create necessary directories"""
@@ -70,7 +65,6 @@ def create_directories():
     
     return True
 
-
 def main():
     """Main installation process"""
     print("\n" + "🎓"*30)
@@ -78,22 +72,17 @@ def main():
     print("   Kocaeli University - Yazlab-1 Project\n")
     print("🎓"*30)
     
-    # Step 1: Check Python version
     if not check_python_version():
         return False
     
-    # Step 2: Create directories
     if not create_directories():
         return False
     
-    # Step 3: Install dependencies
     if not install_dependencies():
         return False
     
-    # Step 4: Create sample files
     create_sample_files()
     
-    # Success message
     print_header("Installation Complete! 🎉")
     print("\n✨ The Exam Scheduler has been installed successfully!\n")
     print("Next steps:")
@@ -110,10 +99,7 @@ def main():
     
     return True
 
-
 if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)
-
-
 

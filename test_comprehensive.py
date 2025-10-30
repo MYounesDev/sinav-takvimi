@@ -12,7 +12,6 @@ import os
 import sys
 from config import DATABASE_PATH
 
-
 def test_display_id_system():
     """Test display_id creation and recycling"""
     
@@ -26,12 +25,10 @@ def test_display_id_system():
     cursor = conn.cursor()
     
     try:
-        # Test 1: Create departments and check display_id
         print("\n[1] Creating test departments...")
         cursor.execute("SELECT MAX(display_id) as max_id FROM departments")
         max_id = cursor.fetchone()['max_id'] or 0
         
-        # Create 3 new departments
         test_depts = []
         for i in range(1, 4):
             cursor.execute("""
@@ -43,13 +40,11 @@ def test_display_id_system():
         
         conn.commit()
         
-        # Test 2: Delete middle department
         print(f"\n[2] Deleting department with display_id={max_id + 2}...")
         cursor.execute("DELETE FROM departments WHERE display_id = ?", (max_id + 2,))
         conn.commit()
         print(f"  ✓ Department deleted")
         
-        # Check deleted_ids table
         cursor.execute("SELECT * FROM deleted_ids WHERE table_name='departments' AND display_id=?", (max_id + 2,))
         result = cursor.fetchone()
         if result:
@@ -57,10 +52,8 @@ def test_display_id_system():
         else:
             print(f"  ✗ ERROR: display_id not recorded in deleted_ids!")
         
-        # Test 3: Create new department - should reuse deleted ID
         print(f"\n[3] Creating new department (should reuse display_id={max_id + 2})...")
         
-        # Get next display_id (should return the recycled one)
         cursor.execute("""
             SELECT display_id FROM deleted_ids
             WHERE table_name = 'departments'
@@ -86,7 +79,6 @@ def test_display_id_system():
         else:
             print("  ✗ No recycled ID available")
         
-        # Cleanup test data
         print("\n[4] Cleaning up test data...")
         cursor.execute("DELETE FROM departments WHERE code LIKE 'TEST%' OR code = 'RECYCLED'")
         conn.commit()
@@ -105,7 +97,6 @@ def test_display_id_system():
     
     return True
 
-
 def test_cascade_delete():
     """Test CASCADE DELETE functionality"""
     
@@ -119,7 +110,6 @@ def test_cascade_delete():
     cursor = conn.cursor()
     
     try:
-        # Create test department
         print("\n[1] Creating test department...")
         cursor.execute("SELECT MAX(display_id) as max_id FROM departments")
         max_id = cursor.fetchone()['max_id'] or 0
@@ -132,10 +122,8 @@ def test_cascade_delete():
         dept_id = cursor.lastrowid
         print(f"  ✓ Department created: id={dept_id}, display_id={display_id}")
         
-        # Create related records
         print("\n[2] Creating related records...")
         
-        # Create classroom
         cursor.execute("""
             INSERT INTO classrooms (display_id, department_id, code, name, capacity, rows, cols)
             VALUES (1, ?, 'C101', 'Test Classroom', 40, 5, 8)
@@ -143,7 +131,6 @@ def test_cascade_delete():
         classroom_id = cursor.lastrowid
         print(f"  ✓ Classroom created: id={classroom_id}")
         
-        # Create course
         cursor.execute("""
             INSERT INTO courses (display_id, department_id, code, name, class_level, type)
             VALUES (1, ?, 'TST101', 'Test Course', 1, 'mandatory')
@@ -151,7 +138,6 @@ def test_cascade_delete():
         course_id = cursor.lastrowid
         print(f"  ✓ Course created: id={course_id}")
         
-        # Create student
         cursor.execute("""
             INSERT INTO students (display_id, department_id, student_no, name, class_level)
             VALUES (1, ?, 'TEST001', 'Test Student', 1)
@@ -159,7 +145,6 @@ def test_cascade_delete():
         student_id = cursor.lastrowid
         print(f"  ✓ Student created: id={student_id}")
         
-        # Create student-course relationship
         cursor.execute("""
             INSERT INTO student_courses (student_id, course_id)
             VALUES (?, ?)
@@ -168,7 +153,6 @@ def test_cascade_delete():
         
         conn.commit()
         
-        # Count related records before deletion
         print("\n[3] Counting related records before deletion...")
         counts_before = {}
         
@@ -187,13 +171,11 @@ def test_cascade_delete():
             counts_before[table] = cursor.fetchone()['cnt']
             print(f"  - {table}: {counts_before[table]} records")
         
-        # Delete department (should CASCADE)
         print(f"\n[4] Deleting department (id={dept_id})...")
         cursor.execute("DELETE FROM departments WHERE id = ?", (dept_id,))
         conn.commit()
         print("  ✓ Department deleted")
         
-        # Count related records after deletion
         print("\n[5] Counting related records after deletion...")
         all_deleted = True
         
@@ -236,7 +218,6 @@ def test_cascade_delete():
     finally:
         conn.close()
 
-
 def test_department_scoped_display_id():
     """Test that display_id is scoped per department for related tables"""
     
@@ -250,7 +231,6 @@ def test_department_scoped_display_id():
     cursor = conn.cursor()
     
     try:
-        # Get two different departments
         cursor.execute("SELECT id, name FROM departments LIMIT 2")
         depts = cursor.fetchall()
         
@@ -265,7 +245,6 @@ def test_department_scoped_display_id():
         print(f"  - Dept 1: {dept1_name} (id={dept1_id})")
         print(f"  - Dept 2: {dept2_name} (id={dept2_id})")
         
-        # Create students in both departments with same display_id
         print("\n[2] Creating students with display_id=999 in both departments...")
         
         cursor.execute("""
@@ -284,7 +263,6 @@ def test_department_scoped_display_id():
         
         conn.commit()
         
-        # Verify both students exist with same display_id
         cursor.execute("""
             SELECT COUNT(*) as cnt FROM students WHERE display_id = 999
         """)
@@ -296,7 +274,6 @@ def test_department_scoped_display_id():
             print(f"\n  ✗ ERROR: Expected 2 students, found {count}")
             return False
         
-        # Cleanup
         print("\n[3] Cleaning up test data...")
         cursor.execute("DELETE FROM students WHERE student_no LIKE 'TEST999%'")
         conn.commit()
@@ -316,7 +293,6 @@ def test_department_scoped_display_id():
     finally:
         conn.close()
 
-
 def main():
     """Run all tests"""
     print("\n")
@@ -332,12 +308,10 @@ def main():
     
     results = []
     
-    # Run tests
     results.append(("display_id System", test_display_id_system()))
     results.append(("CASCADE DELETE", test_cascade_delete()))
     results.append(("Department-Scoped display_id", test_department_scoped_display_id()))
     
-    # Print summary
     print("\n\n")
     print("╔" + "═" * 68 + "╗")
     print("║" + " " * 25 + "TEST SUMMARY" + " " * 31 + "║")
@@ -361,7 +335,6 @@ def main():
         print("\n✗ SOME TESTS FAILED!")
         print("\nPlease check the errors above and fix any issues.")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

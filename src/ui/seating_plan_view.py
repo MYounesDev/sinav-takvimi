@@ -15,7 +15,6 @@ from src.utils.styles import Styles
 from src.utils.pdf_export import export_seating_plan_pdf
 from config import COLORS
 
-
 class SeatingPlanView(QWidget):
     """Seating plan management view"""
     
@@ -30,7 +29,6 @@ class SeatingPlanView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar
         top_bar = QHBoxLayout()
         
         title = QLabel("Seating Plan")
@@ -39,7 +37,6 @@ class SeatingPlanView(QWidget):
         
         top_bar.addStretch()
         
-        # Exam selector
         exam_label = QLabel("Select Exam:")
         exam_label.setStyleSheet(Styles.NORMAL_LABEL)
         top_bar.addWidget(exam_label)
@@ -52,25 +49,21 @@ class SeatingPlanView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
-        # Generate seating button
         generate_btn = QPushButton("⚙️ Generate Seating")
         generate_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         generate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         generate_btn.clicked.connect(self.generate_seating)
         action_bar.addWidget(generate_btn)
         
-        # View layout button
         view_btn = QPushButton("👁️ View Layout")
         view_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         view_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         view_btn.clicked.connect(self.view_layout)
         action_bar.addWidget(view_btn)
         
-        # Export to PDF button
         export_btn = QPushButton("📄 Export to PDF")
         export_btn.setStyleSheet(Styles.SUCCESS_BUTTON)
         export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -79,10 +72,8 @@ class SeatingPlanView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Seating table
         self.table = QTableWidget()
         user = get_current_user()
-        # Add department column for admin
         headers = ["Student No", "Name", "Classroom", "Row", "Seat"]
         if user and user['role'] == 'admin':
             headers.insert(2, "Department")
@@ -94,7 +85,6 @@ class SeatingPlanView(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
         
-        # Load exams
         self.load_exams()
     
     def load_exams(self):
@@ -103,16 +93,13 @@ class SeatingPlanView(QWidget):
         if not user:
             return
         
-        # Store current selection
         current_exam_id = self.current_exam_id
         
-        # Temporarily disconnect signal to avoid triggering during population
         try:
             self.exam_combo.currentIndexChanged.disconnect()
         except:
             pass  # Signal might not be connected yet
         
-        # Build department filter
         if user['role'] == 'admin':
             dept_filter = ""
             params = ()
@@ -136,18 +123,15 @@ class SeatingPlanView(QWidget):
             display_text = f"{exam['date']} {exam['start_time']} - {exam['code']} {exam['name']}"
             self.exam_combo.addItem(display_text, exam['id'])
         
-        # Reconnect signal
         self.exam_combo.currentIndexChanged.connect(self.on_exam_selected)
         
         if exams:
-            # Try to restore previous selection
             if current_exam_id:
                 for i in range(self.exam_combo.count()):
                     if self.exam_combo.itemData(i) == current_exam_id:
                         self.exam_combo.setCurrentIndex(i)
                         self.on_exam_selected(i)
                         return
-            # If not found or no previous selection, select first
             self.on_exam_selected(0)
     
     def on_exam_selected(self, index):
@@ -165,7 +149,6 @@ class SeatingPlanView(QWidget):
         
         user = get_current_user()
         
-        # Re-initialize table structure based on actual logged-in user
         headers = ["Student No", "Name", "Classroom", "Row", "Seat"]
         if user and user['role'] == 'admin':
             headers.insert(2, "Department")
@@ -195,7 +178,6 @@ class SeatingPlanView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(seat['name']))
             col_idx += 1
             
-            # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = seat['department_name'] or 'N/A'
                 dept_code = seat['department_code'] or ''
@@ -218,7 +200,6 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Exam", "Please select an exam first")
             return
         
-        # Validate exam exists
         exam_query = """
             SELECT e.*, c.code as course_code, c.name as course_name
             FROM exams e
@@ -233,7 +214,6 @@ class SeatingPlanView(QWidget):
         
         exam = exam_result[0]
         
-        # Check if students are enrolled
         students_query = """
             SELECT COUNT(*) as count
             FROM students s
@@ -251,7 +231,6 @@ class SeatingPlanView(QWidget):
             )
             return
         
-        # Check if classrooms are assigned
         classrooms_query = """
             SELECT cl.*, 
                    (cl.rows * cl.cols * cl.seats_per_desk) as capacity
@@ -269,7 +248,6 @@ class SeatingPlanView(QWidget):
             )
             return
         
-        # Calculate total classroom capacity
         total_capacity = sum(cl['capacity'] for cl in classrooms)
         
         if total_capacity < students_count:
@@ -286,7 +264,6 @@ class SeatingPlanView(QWidget):
             )
             return
         
-        # Check for student schedule conflicts (students having exams at same time)
         conflicts_query = """
             SELECT s.student_no, s.name, 
                    GROUP_CONCAT(c.code || ' - ' || c.name, ', ') as courses
@@ -319,7 +296,6 @@ class SeatingPlanView(QWidget):
             if reply != QMessageBox.StandardButton.Yes:
                 return
         
-        # Final confirmation
         reply = QMessageBox.question(
             self, 
             "Oturma Planı Oluştur",
@@ -364,7 +340,6 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Exam", "Please select an exam first")
             return
         
-        # Get classrooms for this exam
         query = """
             SELECT cl.id, cl.name
             FROM classrooms cl
@@ -377,7 +352,6 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Classrooms", "No classrooms assigned to this exam")
             return
         
-        # Show layout for each classroom
         for classroom in classrooms:
             dialog = SeatingLayoutDialog(self, self.current_exam_id, classroom['id'], classroom['name'])
             dialog.exec()
@@ -388,7 +362,6 @@ class SeatingPlanView(QWidget):
             QMessageBox.warning(self, "No Exam", "Please select an exam first")
             return
         
-        # Get exam details for default filename
         exam = db_manager.execute_query(
             "SELECT c.code, e.date, e.start_time FROM exams e JOIN courses c ON e.course_id = c.id WHERE e.id = ?",
             (self.current_exam_id,)
@@ -401,7 +374,6 @@ class SeatingPlanView(QWidget):
             exam_time = exam[0]['start_time'].replace(':', '-')
             default_filename = f"seating_plan_{course_code}_{exam_date}_{exam_time}.pdf"
         
-        # Open file dialog to choose save location
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Seating Plan PDF",
@@ -412,7 +384,6 @@ class SeatingPlanView(QWidget):
         if not file_path:  # User cancelled
             return
         
-        # Ensure .pdf extension
         if not file_path.lower().endswith('.pdf'):
             file_path += '.pdf'
         
@@ -421,7 +392,6 @@ class SeatingPlanView(QWidget):
             QMessageBox.information(self, "Success", f"Seating plan exported to:\n{filename}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to export PDF:\n{str(e)}")
-
 
 class SeatingLayoutDialog(QDialog):
     """Dialog showing visual classroom layout"""
@@ -440,23 +410,19 @@ class SeatingLayoutDialog(QDialog):
         
         layout = QVBoxLayout(self)
         
-        # Title
         title = QLabel(f"Classroom: {self.classroom_name}")
         title.setStyleSheet(Styles.TITLE_LABEL)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
-        # Scroll area for grid
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet(Styles.SCROLL_AREA)
         
-        # Grid container
         grid_widget = QWidget()
         grid_layout = QGridLayout(grid_widget)
         grid_layout.setSpacing(10)
         
-        # Load seating data
         generator = SeatingPlanGenerator(self.exam_id)
         classroom_data = generator.get_seating_by_classroom(self.classroom_id)
         
@@ -466,7 +432,6 @@ class SeatingLayoutDialog(QDialog):
             cols = classroom_data['cols']
             seats_per_desk = classroom_data['seats_per_desk']
             
-            # Create grid
             for row in range(rows):
                 for col in range(cols):
                     desk_frame = QFrame()
@@ -516,10 +481,8 @@ class SeatingLayoutDialog(QDialog):
         scroll.setWidget(grid_widget)
         layout.addWidget(scroll)
         
-        # Close button
         close_btn = QPushButton("Close")
         close_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
-
 

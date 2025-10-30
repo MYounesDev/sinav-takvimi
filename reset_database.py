@@ -9,7 +9,6 @@ import shutil
 from datetime import datetime
 from config import DATABASE_PATH
 
-
 def clear_all_data():
     """Clear all data from existing database by recreating tables"""
     import sqlite3
@@ -22,10 +21,8 @@ def clear_all_data():
     cursor = conn.cursor()
     
     try:
-        # Disable foreign keys temporarily
         conn.execute("PRAGMA foreign_keys = OFF")
         
-        # Drop all tables
         tables = ['exam_seating', 'exam_classrooms', 'exams', 'student_courses', 
                   'students', 'courses', 'classrooms', 'users', 'departments', 'deleted_ids']
         
@@ -41,7 +38,6 @@ def clear_all_data():
         print("=" * 70)
         print("\nNow initializing fresh database with new design...")
         
-        # Initialize fresh database
         from src.database.db_manager import db_manager
         db_manager.initialize_database()
         
@@ -55,7 +51,6 @@ def clear_all_data():
         conn.close()
         raise
 
-
 def reset_database():
     """Completely reset the database"""
     
@@ -67,7 +62,6 @@ def reset_database():
         print("\n✓ No existing database found. Will create fresh database.")
         return
     
-    # Create backup before reset
     backup_path = DATABASE_PATH.replace('.db', f'_before_reset_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
     try:
         shutil.copy2(DATABASE_PATH, backup_path)
@@ -75,7 +69,6 @@ def reset_database():
     except Exception as e:
         print(f"\n⚠ Could not create backup: {e}")
     
-    # Try to delete the database
     try:
         os.remove(DATABASE_PATH)
         print(f"✓ Database deleted: {DATABASE_PATH}")
@@ -97,7 +90,6 @@ def reset_database():
         print("3. Or rename it to something else")
         print("\nAlternatively, use the 'Clear All Data' option below:")
         clear_all_data()
-
 
 if __name__ == "__main__":
     try:

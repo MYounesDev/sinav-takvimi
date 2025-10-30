@@ -5,7 +5,6 @@ Verification Script - Check if everything is set up correctly
 import sys
 import os
 
-
 def check_file_exists(filepath, description):
     """Check if a file exists"""
     if os.path.exists(filepath):
@@ -15,7 +14,6 @@ def check_file_exists(filepath, description):
         print(f"❌ Missing {description}: {filepath}")
         return False
 
-
 def check_directory_exists(dirpath, description):
     """Check if a directory exists"""
     if os.path.isdir(dirpath):
@@ -24,7 +22,6 @@ def check_directory_exists(dirpath, description):
     else:
         print(f"❌ Missing {description}: {dirpath}/")
         return False
-
 
 def check_module(module_name):
     """Check if a Python module can be imported"""
@@ -36,7 +33,6 @@ def check_module(module_name):
         print(f"❌ Module '{module_name}' is NOT installed")
         return False
 
-
 def main():
     """Run all verification checks"""
     print("\n" + "="*60)
@@ -45,7 +41,6 @@ def main():
     
     all_good = True
     
-    # Check Python version
     print("📍 Python Version:")
     version = sys.version_info
     print(f"   Python {version.major}.{version.minor}.{version.micro}")
@@ -56,14 +51,12 @@ def main():
         print("   ✅ Version is compatible")
     print()
     
-    # Check core files
     print("📍 Core Files:")
     all_good &= check_file_exists("main.py", "Main entry point")
     all_good &= check_file_exists("config.py", "Configuration")
     all_good &= check_file_exists("requirements.txt", "Requirements")
     print()
     
-    # Check source directories
     print("📍 Source Directories:")
     all_good &= check_directory_exists("src", "Source code")
     all_good &= check_directory_exists("src/database", "Database layer")
@@ -71,7 +64,6 @@ def main():
     all_good &= check_directory_exists("src/utils", "Utilities")
     print()
     
-    # Check key source files
     print("📍 Key Source Files:")
     all_good &= check_file_exists("src/database/db_manager.py", "Database manager")
     all_good &= check_file_exists("src/ui/main_window.py", "Main window")
@@ -80,7 +72,6 @@ def main():
     all_good &= check_file_exists("src/utils/scheduler.py", "Scheduler algorithm")
     print()
     
-    # Check documentation
     print("📍 Documentation:")
     all_good &= check_file_exists("README.md", "Main README")
     all_good &= check_file_exists("QUICK_START.md", "Quick Start Guide")
@@ -88,7 +79,6 @@ def main():
     all_good &= check_file_exists("FEATURES.md", "Features Documentation")
     print()
     
-    # Check required Python modules
     print("📍 Python Dependencies:")
     modules = [
         "PyQt6",
@@ -104,13 +94,11 @@ def main():
     
     print()
     
-    # Check optional directories
     print("📍 Optional Directories:")
     check_directory_exists("examples", "Examples folder")
     check_directory_exists("database", "Database folder")
     print()
     
-    # Final summary
     print("="*60)
     if all_good:
         print("\n✅ ALL CHECKS PASSED!")
@@ -130,10 +118,7 @@ def main():
     
     return all_good
 
-
 if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)
-
-
 

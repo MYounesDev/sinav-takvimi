@@ -7,7 +7,6 @@ import sqlite3
 import os
 from config import DATABASE_PATH
 
-
 def backup_database():
     """Create a backup of the current database"""
     if os.path.exists(DATABASE_PATH):
@@ -17,7 +16,6 @@ def backup_database():
         print(f"✓ Database backup created: {backup_path}")
         return True
     return False
-
 
 def migrate_table(cursor, table_name, create_sql, columns):
     """
@@ -31,31 +29,25 @@ def migrate_table(cursor, table_name, create_sql, columns):
     """
     print(f"\nMigrating table: {table_name}")
     
-    # Check if table exists
     cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
     if not cursor.fetchone():
         print(f"  Table {table_name} does not exist, skipping...")
         return
     
-    # Create temporary table with new schema
     temp_table = f"{table_name}_new"
     cursor.execute(create_sql.replace(f"CREATE TABLE IF NOT EXISTS {table_name}", 
                                      f"CREATE TABLE {temp_table}"))
     print(f"  ✓ Created temporary table: {temp_table}")
     
-    # Copy data from old table to new table
     columns_str = ", ".join(columns)
     cursor.execute(f"INSERT INTO {temp_table} ({columns_str}) SELECT {columns_str} FROM {table_name}")
     print(f"  ✓ Copied {cursor.rowcount} rows")
     
-    # Drop old table
     cursor.execute(f"DROP TABLE {table_name}")
     print(f"  ✓ Dropped old table")
     
-    # Rename new table
     cursor.execute(f"ALTER TABLE {temp_table} RENAME TO {table_name}")
     print(f"  ✓ Renamed table")
-
 
 def migrate_database():
     """Migrate the database schema"""
@@ -63,17 +55,15 @@ def migrate_database():
     print("DATABASE MIGRATION: Enabling ID Reuse & CASCADE Deletes")
     print("=" * 60)
     
-    # Backup first
     if not backup_database():
         print("No existing database found. Migration not needed.")
         return
     
     conn = sqlite3.connect(DATABASE_PATH)
-    conn.execute("PRAGMA foreign_keys = OFF")  # Disable foreign keys during migration
+    conn.execute("PRAGMA foreign_keys = OFF")  
     cursor = conn.cursor()
     
     try:
-        # Define table schemas without AUTOINCREMENT
         tables = [
             {
                 'name': 'users',
@@ -225,11 +215,9 @@ def migrate_database():
             }
         ]
         
-        # Migrate each table
         for table_info in tables:
             migrate_table(cursor, table_info['name'], table_info['sql'], table_info['columns'])
         
-        # Recreate indexes
         print("\nRecreating indexes...")
         cursor.execute("DROP INDEX IF EXISTS idx_users_email")
         cursor.execute("CREATE INDEX idx_users_email ON users(email)")
@@ -244,10 +232,8 @@ def migrate_database():
         cursor.execute("CREATE INDEX idx_exams_date ON exams(date)")
         print("  ✓ Indexes recreated")
         
-        # Enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON")
         
-        # Commit changes
         conn.commit()
         print("\n" + "=" * 60)
         print("✓ MIGRATION COMPLETED SUCCESSFULLY!")
@@ -272,9 +258,8 @@ def migrate_database():
         print("Your backup is still available for manual recovery.")
         raise
     finally:
-        conn.execute("PRAGMA foreign_keys = ON")  # Re-enable foreign keys
+        conn.execute("PRAGMA foreign_keys = ON")  
         conn.close()
-
 
 if __name__ == "__main__":
     try:

@@ -11,7 +11,6 @@ from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
 from src.utils.styles import Styles
 
-
 class StudentsView(QWidget):
     """Students management view with Excel import"""
     
@@ -26,7 +25,6 @@ class StudentsView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("Student Management")
@@ -35,7 +33,6 @@ class StudentsView(QWidget):
         
         top_bar.addStretch()
         
-        # Department filter (for admin only)
         user = get_current_user()
         if user and user['role'] == 'admin':
             dept_label = QLabel("Department:")
@@ -46,7 +43,6 @@ class StudentsView(QWidget):
             self.dept_filter.addItem("All Departments", None)
             self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
             
-            # Load departments
             departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
             for dept in departments:
                 self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
@@ -54,7 +50,6 @@ class StudentsView(QWidget):
             self.dept_filter.currentIndexChanged.connect(self.load_students)
             top_bar.addWidget(self.dept_filter)
         
-        # Search box
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Search by ID, Student No, or Name...")
         self.search_input.setStyleSheet(Styles.LINE_EDIT)
@@ -62,14 +57,12 @@ class StudentsView(QWidget):
         self.search_input.textChanged.connect(self.filter_students)
         top_bar.addWidget(self.search_input)
         
-        # Import from Excel button
         import_btn = QPushButton("📥 Import from Excel")
         import_btn.setStyleSheet(Styles.SUCCESS_BUTTON)
         import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         import_btn.clicked.connect(self.import_from_excel)
         top_bar.addWidget(import_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -78,10 +71,8 @@ class StudentsView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Table
         self.table = QTableWidget()
         user = get_current_user()
-        # Add department column for admin
         headers = ["ID", "Student No", "Name", "Class Level", "Enrolled Courses"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
@@ -94,7 +85,6 @@ class StudentsView(QWidget):
         self.table.setSortingEnabled(True)  # Enable column sorting
         layout.addWidget(self.table)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
@@ -118,10 +108,8 @@ class StudentsView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Store all students for filtering
         self.all_students = []
         
-        # Load data
         self.load_students()
     
     def load_students(self):
@@ -130,14 +118,12 @@ class StudentsView(QWidget):
         if not user:
             return
         
-        # Re-initialize table structure based on actual logged-in user
         headers = ["ID", "Student No", "Name", "Class Level", "Enrolled Courses"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         
-        # Build department filter
         if user['role'] == 'admin':
             selected_dept_id = None
             if hasattr(self, 'dept_filter'):
@@ -168,14 +154,12 @@ class StudentsView(QWidget):
         """Display students in table"""
         user = get_current_user()
         
-        # Disable sorting while populating
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(students))
         
         for row, student in enumerate(students):
             col_idx = 0
             
-            # Display display_id but store real id in UserRole
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(student['display_id']))
             id_item.setData(Qt.ItemDataRole.UserRole, student['id'])  # Store real ID
@@ -187,7 +171,6 @@ class StudentsView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(student['name']))
             col_idx += 1
             
-            # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = student['department_name'] or 'N/A'
                 dept_code = student['department_code'] or ''
@@ -198,7 +181,6 @@ class StudentsView(QWidget):
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(student['course_count'])))
         
-        # Re-enable sorting
         self.table.setSortingEnabled(True)
     
     def filter_students(self):
@@ -209,7 +191,6 @@ class StudentsView(QWidget):
             self.display_students(self.all_students)
             return
         
-        # Search in display_id, student_no, and name
         filtered = [s for s in self.all_students 
                    if (str(s['display_id']).lower().find(search_text) != -1 or
                        s['student_no'].lower().find(search_text) != -1 or
@@ -222,7 +203,6 @@ class StudentsView(QWidget):
         Turkish format is in long format: one row per student-course pair
         Need to convert to wide format: one row per student with all courses
         """
-        # Turkish column name mappings
         column_map = {
             'Öğrenci No': 'student_no',
             'öğrenci no': 'student_no',
@@ -242,7 +222,6 @@ class StudentsView(QWidget):
             'ders kodu': 'course_code',
         }
         
-        # Rename columns based on mapping
         new_columns = {}
         for col in df.columns:
             col_str = str(col).strip()
@@ -251,23 +230,18 @@ class StudentsView(QWidget):
         
         df = df.rename(columns=new_columns)
         
-        # Clean up the dataframe
         df = df.dropna(how='all')
         
-        # If we have the long format (student_no, name, course_code per row)
         if 'student_no' in df.columns and 'course_code' in df.columns:
-            # Extract class level from class_level_str (e.g., "1. Sınıf" -> 1)
             if 'class_level_str' in df.columns:
                 df['class_level'] = df['class_level_str'].astype(str).str.extract(r'(\d+)')[0]
                 df['class_level'] = pd.to_numeric(df['class_level'], errors='coerce')
             
-            # Group by student and aggregate courses
             grouped = df.groupby(['student_no', 'name']).agg({
                 'class_level': 'first',  # Take the first class level
                 'course_code': lambda x: ','.join(x.dropna().astype(str))  # Combine all courses
             }).reset_index()
             
-            # Rename course_code column to course_codes
             grouped = grouped.rename(columns={'course_code': 'course_codes'})
             
             return grouped
@@ -287,15 +261,12 @@ class StudentsView(QWidget):
             return
         
         try:
-            # Read Excel file
             df = pd.read_excel(file_path)
             
-            # Check if it's Turkish format (Ogrenci listesi.xlsx)
             turkish_columns = ['Öğrenci No', 'Ad Soyad', 'Sınıf', 'Ders']
             if any(col in df.columns for col in turkish_columns):
                 df = self._normalize_turkish_students(df)
             
-            # Expected columns: student_no, name, class_level, course_codes (comma-separated)
             required_columns = ['student_no', 'name']
             missing_columns = [col for col in required_columns if col not in df.columns]
             
@@ -310,7 +281,6 @@ class StudentsView(QWidget):
             
             user = get_current_user()
             
-            # For admin, show department selection dialog
             selected_dept_id = user['department_id']
             if user['role'] == 'admin':
                 from PyQt6.QtWidgets import QInputDialog
@@ -327,7 +297,6 @@ class StudentsView(QWidget):
                     return
                 selected_dept_id = dept_map[item]
             
-            # Show progress dialog
             progress = QProgressDialog("Importing students...", "Cancel", 0, len(df), self)
             progress.setWindowModality(Qt.WindowModality.WindowModal)
             
@@ -344,12 +313,10 @@ class StudentsView(QWidget):
                     class_level = int(row.get('class_level', 0)) if pd.notna(row.get('class_level')) else None
                     course_codes_str = str(row.get('course_codes', '')).strip() if pd.notna(row.get('course_codes')) else ""
                     
-                    # Check if student already exists
                     check_query = "SELECT id FROM students WHERE student_no = ?"
                     existing = db_manager.execute_query(check_query, (student_no,))
                     
                     if existing:
-                        # Update existing student
                         query = """
                             UPDATE students
                             SET name = ?, class_level = ?
@@ -358,7 +325,6 @@ class StudentsView(QWidget):
                         db_manager.execute_update(query, (name, class_level, student_no))
                         student_id = existing[0]['id']
                     else:
-                        # Insert new student with display_id
                         display_id = db_manager.get_next_display_id('students')
                         query = """
                             INSERT INTO students (display_id, department_id, student_no, name, class_level)
@@ -368,12 +334,10 @@ class StudentsView(QWidget):
                             display_id, selected_dept_id, student_no, name, class_level
                         ))
                     
-                    # If course codes are provided, enroll student
                     if course_codes_str and student_id:
                         course_codes = [c.strip() for c in course_codes_str.split(',') if c.strip()]
                         
                         for course_code in course_codes:
-                            # Find course by code - for admin, search across all departments; for coordinator, only their department
                             if user['role'] == 'admin':
                                 course_query = "SELECT id FROM courses WHERE code = ?"
                                 course_result = db_manager.execute_query(course_query, (course_code,))
@@ -382,7 +346,6 @@ class StudentsView(QWidget):
                                 course_result = db_manager.execute_query(course_query, (course_code, user['department_id']))
                             
                             if course_result:
-                                # Enroll student in course
                                 enroll_query = """
                                     INSERT OR IGNORE INTO student_courses (student_id, course_id)
                                     VALUES (?, ?)
@@ -398,7 +361,6 @@ class StudentsView(QWidget):
             
             progress.close()
             
-            # Show results
             message = f"Successfully imported {imported_count} students."
             if errors:
                 message += f"\n\nErrors encountered:\n" + "\n".join(errors[:10])
@@ -418,7 +380,6 @@ class StudentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a student to delete")
             return
         
-        # Get real ID from UserRole
         student_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         student_name = self.table.item(row, 2).text()
         
@@ -443,7 +404,6 @@ class StudentsView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            # For admin, delete filtered or all; for coordinator, only their department
             if user['role'] == 'admin' :
                 if hasattr(self, 'dept_filter'):
                     selected_dept_id = self.dept_filter.currentData()
@@ -460,7 +420,6 @@ class StudentsView(QWidget):
                 query = "DELETE FROM students WHERE department_id = ?"
                 db_manager.execute_update(query, (user['department_id'],))
             
-            # Clear the table before reloading to avoid dataChanged warnings
             self.table.setRowCount(0)
             self.all_students = []
             self.load_students()
@@ -472,10 +431,8 @@ class StudentsView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a student to view details")
             return
         
-        # Get real ID from UserRole
         student_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
-        # Get student details
         student_query = """
             SELECT s.id, s.display_id, s.student_no, s.name, s.class_level,
                    d.name as department_name, d.code as department_code
@@ -489,7 +446,6 @@ class StudentsView(QWidget):
             return
         student = student[0]
         
-        # Get enrolled courses
         courses_query = """
             SELECT c.display_id, c.code, c.name, c.instructor, c.class_level, c.type,
                    CASE WHEN c.isActive = 1 THEN '✅' ELSE '❌' END as status
@@ -500,10 +456,8 @@ class StudentsView(QWidget):
         """
         courses = list(db_manager.execute_query(courses_query, (student_id,)))
         
-        # Show dialog
         dialog = StudentDetailsDialog(self, student, courses)
         dialog.exec()
-
 
 class StudentDetailsDialog(QDialog):
     """Dialog to show student details and enrolled courses"""
@@ -523,7 +477,6 @@ class StudentDetailsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         
-        # Student info
         info_label = QLabel("Student Information")
         info_label.setStyleSheet(Styles.SUBTITLE_LABEL)
         layout.addWidget(info_label)
@@ -541,7 +494,6 @@ class StudentDetailsDialog(QDialog):
         info_display.setStyleSheet("padding: 10px; background-color: #f0f0f0; border-radius: 5px; color: #000000;")
         layout.addWidget(info_display)
         
-        # Courses table
         courses_label = QLabel("Enrolled Courses")
         courses_label.setStyleSheet(Styles.SUBTITLE_LABEL)
         layout.addWidget(courses_label)
@@ -555,7 +507,6 @@ class StudentDetailsDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSortingEnabled(True)
         
-        # Populate courses
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(self.courses))
         for row, course in enumerate(self.courses):
@@ -570,11 +521,8 @@ class StudentDetailsDialog(QDialog):
         
         layout.addWidget(self.table)
         
-        # Close button
         close_btn = QPushButton("Close")
         close_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
-
-
 

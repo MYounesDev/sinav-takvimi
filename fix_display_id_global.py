@@ -9,7 +9,6 @@ import shutil
 from datetime import datetime
 from config import DATABASE_PATH
 
-
 def backup_database():
     """Create a backup of the current database"""
     if not os.path.exists(DATABASE_PATH):
@@ -21,7 +20,6 @@ def backup_database():
     print(f"✓ Database backed up to: {backup_path}")
     return backup_path
 
-
 def fix_global_display_id():
     """Fix display_id to be globally unique"""
     
@@ -31,7 +29,6 @@ def fix_global_display_id():
     
     backup_path = backup_database()
     
-    # If no database exists, we'll just create a fresh one
     if backup_path is None:
         print("\nNo existing database. Please run init_database.py to create a fresh database.")
         print("The new database will have globally unique display_id from the start.")
@@ -41,13 +38,11 @@ def fix_global_display_id():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    # Disable foreign keys temporarily
     conn.execute("PRAGMA foreign_keys = OFF")
     
     try:
         print("\nStep 1: Backing up all data...")
         
-        # Backup all tables data
         tables_data = {}
         tables = ['departments', 'users', 'classrooms', 'courses', 'students', 
                   'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
@@ -71,7 +66,6 @@ def fix_global_display_id():
         
         print("\nStep 3: Creating new tables with GLOBALLY UNIQUE display_id...")
         
-        # Deleted IDs tracking table
         cursor.execute("""
             CREATE TABLE deleted_ids (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,7 +76,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Departments table (already globally unique)
         cursor.execute("""
             CREATE TABLE departments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +86,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Users table (already globally unique)
         cursor.execute("""
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +100,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Classrooms table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE classrooms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +117,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Courses table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +133,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Students table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -157,7 +146,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Student-Course relationship table
         cursor.execute("""
             CREATE TABLE student_courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,7 +158,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Exams table - NOW GLOBALLY UNIQUE
         cursor.execute("""
             CREATE TABLE exams (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -187,7 +174,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Exam-Classroom assignment table
         cursor.execute("""
             CREATE TABLE exam_classrooms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -200,7 +186,6 @@ def fix_global_display_id():
             )
         """)
         
-        # Exam Seating table
         cursor.execute("""
             CREATE TABLE exam_seating (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -262,12 +247,9 @@ def fix_global_display_id():
         
         print("\nStep 6: Reassigning display_ids to be globally unique...")
         
-        # We need to reassign display_ids to make them globally unique
-        # Strategy: Assign new global display_ids sequentially
         
         global_display_id_counter = 1
         
-        # Restore departments (they were already globally unique)
         if 'departments' in tables_data and tables_data['departments']:
             for row in tables_data['departments']:
                 columns = list(row.keys())
@@ -276,13 +258,11 @@ def fix_global_display_id():
                 columns_str = ','.join(columns)
                 cursor.execute(f"INSERT INTO departments ({columns_str}) VALUES ({placeholders})", values)
             print(f"  ✓ Restored departments: {len(tables_data['departments'])} rows")
-            # Update counter
             cursor.execute("SELECT MAX(display_id) FROM departments")
             max_id = cursor.fetchone()[0]
             if max_id:
                 global_display_id_counter = max(global_display_id_counter, max_id + 1)
         
-        # Restore users (they were already globally unique)
         if 'users' in tables_data and tables_data['users']:
             for row in tables_data['users']:
                 columns = list(row.keys())
@@ -291,18 +271,15 @@ def fix_global_display_id():
                 columns_str = ','.join(columns)
                 cursor.execute(f"INSERT INTO users ({columns_str}) VALUES ({placeholders})", values)
             print(f"  ✓ Restored users: {len(tables_data['users'])} rows")
-            # Update counter
             cursor.execute("SELECT MAX(display_id) FROM users")
             max_id = cursor.fetchone()[0]
             if max_id:
                 global_display_id_counter = max(global_display_id_counter, max_id + 1)
         
-        # Restore courses with NEW globally unique display_ids
         if 'courses' in tables_data and tables_data['courses']:
             for row in tables_data['courses']:
                 columns = list(row.keys())
                 values = list(row)
-                # Replace display_id with new global one
                 display_id_idx = columns.index('display_id')
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
@@ -312,12 +289,10 @@ def fix_global_display_id():
                 cursor.execute(f"INSERT INTO courses ({columns_str}) VALUES ({placeholders})", values)
             print(f"  ✓ Restored courses: {len(tables_data['courses'])} rows with NEW global display_ids")
         
-        # Restore students with NEW globally unique display_ids
         if 'students' in tables_data and tables_data['students']:
             for row in tables_data['students']:
                 columns = list(row.keys())
                 values = list(row)
-                # Replace display_id with new global one
                 display_id_idx = columns.index('display_id')
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
@@ -327,12 +302,10 @@ def fix_global_display_id():
                 cursor.execute(f"INSERT INTO students ({columns_str}) VALUES ({placeholders})", values)
             print(f"  ✓ Restored students: {len(tables_data['students'])} rows with NEW global display_ids")
         
-        # Restore classrooms with NEW globally unique display_ids
         if 'classrooms' in tables_data and tables_data['classrooms']:
             for row in tables_data['classrooms']:
                 columns = list(row.keys())
                 values = list(row)
-                # Replace display_id with new global one
                 display_id_idx = columns.index('display_id')
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
@@ -342,14 +315,12 @@ def fix_global_display_id():
                 cursor.execute(f"INSERT INTO classrooms ({columns_str}) VALUES ({placeholders})", values)
             print(f"  ✓ Restored classrooms: {len(tables_data['classrooms'])} rows with NEW global display_ids")
         
-        # Restore relationship tables
         for table in ['student_courses', 'exams', 'exam_classrooms', 'exam_seating']:
             if table in tables_data and tables_data[table]:
                 for row in tables_data[table]:
                     columns = list(row.keys())
                     values = list(row)
                     
-                    # For exams, assign new global display_id if it has one
                     if table == 'exams' and 'display_id' in columns:
                         display_id_idx = columns.index('display_id')
                         values[display_id_idx] = global_display_id_counter
@@ -363,13 +334,10 @@ def fix_global_display_id():
                         print(f"    ⚠ Skipped row in {table}: {e}")
                 print(f"  ✓ Restored {table}: {len(tables_data[table])} rows")
         
-        # Don't restore deleted_ids - start fresh
         print("  ✓ Starting fresh deleted_ids table")
         
-        # Commit all changes
         conn.commit()
         
-        # Re-enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON")
         
         print("\n" + "=" * 70)
@@ -388,7 +356,6 @@ def fix_global_display_id():
         raise
     finally:
         conn.close()
-
 
 if __name__ == "__main__":
     try:

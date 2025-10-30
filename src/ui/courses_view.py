@@ -13,13 +13,12 @@ from src.utils.auth import get_current_user
 from src.utils.styles import Styles
 from config import ALLOWED_EXCEL_EXTENSIONS
 
-
 class CoursesView(QWidget):
     """Courses management view with Excel import"""
     
     def __init__(self):
         super().__init__()
-        self.all_courses = []  # Store all courses for filtering
+        self.all_courses = []  
         self.init_ui()
         
     def init_ui(self):
@@ -28,7 +27,6 @@ class CoursesView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("Course Management")
@@ -37,7 +35,6 @@ class CoursesView(QWidget):
         
         top_bar.addStretch()
         
-        # Department filter (for admin only)
         user = get_current_user()
         if user and user['role'] == 'admin':
             dept_label = QLabel("Department:")
@@ -48,7 +45,6 @@ class CoursesView(QWidget):
             self.dept_filter.addItem("All Departments", None)
             self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
             
-            # Load departments
             departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
             for dept in departments:
                 self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
@@ -56,14 +52,12 @@ class CoursesView(QWidget):
             self.dept_filter.currentIndexChanged.connect(self.load_courses)
             top_bar.addWidget(self.dept_filter)
         
-        # Import from Excel button
         import_btn = QPushButton("📥 Import from Excel")
         import_btn.setStyleSheet(Styles.SUCCESS_BUTTON)
         import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         import_btn.clicked.connect(self.import_from_excel)
         top_bar.addWidget(import_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -72,7 +66,6 @@ class CoursesView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Search bar
         search_bar = QHBoxLayout()
         search_label = QLabel("🔍 Search:")
         search_label.setStyleSheet(Styles.NORMAL_LABEL)
@@ -86,10 +79,8 @@ class CoursesView(QWidget):
         
         layout.addLayout(search_bar)
         
-        # Table
         self.table = QTableWidget()
         user = get_current_user()
-        # Add department column for admin, add Status column
         headers = ["ID", "Code", "Name", "Instructor", "Class Level", "Type", "Status"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
@@ -99,21 +90,18 @@ class CoursesView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)  # Enable column sorting
+        self.table.setSortingEnabled(True)  
         layout.addWidget(self.table)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
-        # View details button
         view_btn = QPushButton("👁️ View Details")
         view_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         view_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         view_btn.clicked.connect(self.view_course_details)
         action_bar.addWidget(view_btn)
         
-        # Toggle active/inactive button
         toggle_btn = QPushButton("🔄 Toggle Active/Inactive")
         toggle_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -134,7 +122,6 @@ class CoursesView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Load data
         self.load_courses()
     
     def load_courses(self):
@@ -143,14 +130,12 @@ class CoursesView(QWidget):
         if not user:
             return
         
-        # Re-initialize table structure based on actual logged-in user
         headers = ["ID", "Code", "Name", "Instructor", "Class Level", "Type", "Status"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         
-        # Build department filter
         if user['role'] == 'admin':
             selected_dept_id = None
             if hasattr(self, 'dept_filter'):
@@ -172,24 +157,22 @@ class CoursesView(QWidget):
         """
         
         courses = db_manager.execute_query(query)
-        self.all_courses = courses  # Store for filtering
+        self.all_courses = courses  
         self.populate_table(courses)
     
     def populate_table(self, courses):
         """Populate table with course data"""
         user = get_current_user()
         
-        # Disable sorting while populating
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(courses))
         
         for row, course in enumerate(courses):
             col_idx = 0
             
-            # Display display_id but store real id in UserRole
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(course['display_id']))
-            id_item.setData(Qt.ItemDataRole.UserRole, course['id'])  # Store real ID
+            id_item.setData(Qt.ItemDataRole.UserRole, course['id'])  
             self.table.setItem(row, col_idx, id_item)
             col_idx += 1
             
@@ -198,7 +181,6 @@ class CoursesView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(course['name']))
             col_idx += 1
             
-            # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = course['department_name'] or 'N/A'
                 dept_code = course['department_code'] or ''
@@ -212,14 +194,12 @@ class CoursesView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(course['type'] or ""))
             col_idx += 1
             
-            # Status column
             status_text = "✅ Active" if course['isActive'] else "❌ Inactive"
             status_item = QTableWidgetItem(status_text)
             if not course['isActive']:
                 status_item.setForeground(Qt.GlobalColor.red)
             self.table.setItem(row, col_idx, status_item)
         
-        # Re-enable sorting
         self.table.setSortingEnabled(True)
     
     def filter_courses(self):
@@ -227,14 +207,11 @@ class CoursesView(QWidget):
         search_text = self.search_input.text().lower()
         
         if not search_text:
-            # Show all courses
             self.populate_table(self.all_courses)
             return
         
-        # Filter courses
         filtered = []
         for course in self.all_courses:
-            # Search in display_id, code, name, and instructor
             if (str(course['display_id']).lower().find(search_text) != -1 or
                 course['code'].lower().find(search_text) != -1 or
                 course['name'].lower().find(search_text) != -1 or
@@ -248,7 +225,6 @@ class CoursesView(QWidget):
         Handles hierarchical structure where class level and course type are indicated
         by section header rows (e.g., "2. Sınıf", "SEÇMELİ DERS")
         """
-        # Turkish column name mappings (case-insensitive)
         column_map = {
             'DERS KODU': 'code',
             'Ders Kodu': 'code',
@@ -266,7 +242,6 @@ class CoursesView(QWidget):
             'öğretim elemanı': 'instructor',
         }
         
-        # Rename columns based on mapping
         new_columns = {}
         for col in df.columns:
             col_str = str(col).strip()
@@ -275,78 +250,58 @@ class CoursesView(QWidget):
         
         df = df.rename(columns=new_columns)
         
-        # If there's no 'name' column but we have 'code', try to find name in other columns
         if 'code' in df.columns and 'name' not in df.columns:
-            # Look for unnamed columns that might contain course names
             unnamed_cols = [col for col in df.columns if 'Unnamed' in str(col) or str(col).startswith('Unnamed')]
             if unnamed_cols:
-                # Use the first unnamed column as the course name
                 df = df.rename(columns={unnamed_cols[0]: 'name'})
         
-        # Now process rows sequentially to handle hierarchical structure
         if 'code' not in df.columns:
             return df
         
-        # Track current class level and course type as we process rows
-        current_class_level = 1  # Default to 1st year
-        current_course_type = None  # None means not yet determined (will default to 'mandatory')
+        current_class_level = 1  
+        current_course_type = None  
         
-        # Prepare list for processed rows
         processed_rows = []
         
-        # Process each row sequentially
         for idx, row in df.iterrows():
             code_value = str(row['code']).strip() if pd.notna(row['code']) else ''
             name_value = str(row['name']).strip() if 'name' in row and pd.notna(row.get('name')) else ''
             
-            # Check if this is a class level indicator (e.g., "1. Sınıf", "2. Sınıf")
             if 'Sınıf' in code_value or 'SINIF' in code_value or 'sınıf' in code_value:
-                # Extract class level number (e.g., "2. Sınıf" -> 2)
                 match = re.search(r'(\d+)', code_value)
                 if match:
                     current_class_level = int(match.group(1))
-                    current_course_type = None  # Reset type when class level changes
-                continue  # Skip this row, don't add it
+                    current_course_type = None  
+                continue  
             
-            # Check if this is a course type indicator (e.g., "SEÇMELİ DERS", "SEÇİMLİK DERS")
             if 'SEÇMELİ' in code_value or 'SEÇİMLİK' in code_value or 'SEÇ' in code_value:
                 current_course_type = 'elective'
-                continue  # Skip this row, don't add it
+                continue  
             
-            # Check if this is a duplicate header row
             if 'DERS KODU' in code_value or 'Ders Kodu' in code_value:
-                continue  # Skip duplicate headers
+                continue  
             
-            # Check if this looks like a mandatory course indicator (optional - some files might have this)
             if 'ZORUNLU' in code_value:
                 current_course_type = 'mandatory'
-                continue  # Skip this row
+                continue  
             
-            # If we have a valid code (not empty, not NaN), this is a course row
             if code_value and code_value not in ['', 'nan', 'NaN']:
-                # Create a new row with the current class_level and course_type
                 new_row = row.copy()
                 new_row['class_level'] = current_class_level
                 
-                # Set course type: use current type, or default to 'mandatory' if None
                 if current_course_type is None:
-                    # If we haven't seen a type indicator, default to mandatory
                     new_row['type'] = 'mandatory'
                 else:
                     new_row['type'] = current_course_type
                 
-                # Only add if we have a name (or at least it looks like a real course)
                 if name_value and name_value not in ['', 'nan', 'NaN']:
                     processed_rows.append(new_row)
         
-        # Create new DataFrame from processed rows
         if processed_rows:
             result_df = pd.DataFrame(processed_rows)
-            # Reset index
             result_df = result_df.reset_index(drop=True)
             return result_df
         else:
-            # Fallback: return empty dataframe with expected columns
             return pd.DataFrame(columns=['code', 'name', 'instructor', 'class_level', 'type'])
     
     def import_from_excel(self):
@@ -362,22 +317,15 @@ class CoursesView(QWidget):
             return
         
         try:
-            # Read Excel file
             df = pd.read_excel(file_path)
             
-            # Check if it's Turkish format (Ders Listesi.xlsx)
-            # Turkish format has columns like '1. Sınıf' and first row contains actual headers
             if any('Sınıf' in str(col) for col in df.columns):
-                # Re-read with proper header row (row 1)
                 df = pd.read_excel(file_path, header=1)
-                # Standardize column names from Turkish to English
                 df = self._normalize_turkish_courses(df)
             
-            # Check if Turkish format in different structure (with Turkish column names)
             elif 'DERS KODU' in df.columns or 'Ders Kodu' in df.columns:
                 df = self._normalize_turkish_courses(df)
             
-            # Expected columns: code, name, instructor, class_level, type
             required_columns = ['code', 'name']
             missing_columns = [col for col in required_columns if col not in df.columns]
             
@@ -392,7 +340,6 @@ class CoursesView(QWidget):
             
             user = get_current_user()
             
-            # For admin, show department selection dialog
             selected_dept_id = user['department_id']
             if user['role'] == 'admin':
                 from PyQt6.QtWidgets import QInputDialog
@@ -409,7 +356,6 @@ class CoursesView(QWidget):
                     return
                 selected_dept_id = dept_map[item]
             
-            # Show progress dialog
             progress = QProgressDialog("Importing courses...", "Cancel", 0, len(df), self)
             progress.setWindowModality(Qt.WindowModality.WindowModal)
             
@@ -427,16 +373,13 @@ class CoursesView(QWidget):
                     class_level = int(row.get('class_level', 0)) if pd.notna(row.get('class_level')) else None
                     course_type = str(row.get('type', '')).strip().lower() if pd.notna(row.get('type')) else None
                     
-                    # Validate type
                     if course_type and course_type not in ['mandatory', 'elective']:
                         course_type = None
                     
-                    # Check if course already exists
                     check_query = "SELECT id FROM courses WHERE department_id = ? AND code = ?"
                     existing = db_manager.execute_query(check_query, (selected_dept_id, code))
                     
                     if existing:
-                        # Update existing course
                         query = """
                             UPDATE courses
                             SET name = ?, instructor = ?, class_level = ?, type = ?
@@ -446,7 +389,6 @@ class CoursesView(QWidget):
                             name, instructor, class_level, course_type, selected_dept_id, code
                         ))
                     else:
-                        # Insert new course with display_id
                         display_id = db_manager.get_next_display_id('courses')
                         query = """
                             INSERT INTO courses (display_id, department_id, code, name, instructor, class_level, type)
@@ -465,7 +407,6 @@ class CoursesView(QWidget):
             
             progress.close()
             
-            # Show results
             message = f"Successfully imported {imported_count} courses."
             if errors:
                 message += f"\n\nErrors encountered:\n" + "\n".join(errors[:10])
@@ -485,11 +426,9 @@ class CoursesView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a course to toggle")
             return
         
-        # Get real ID from UserRole
         course_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         course_name = self.table.item(row, 2).text()
         
-        # Get current status
         course = db_manager.execute_query("SELECT isActive FROM courses WHERE id = ?", (course_id,))
         if not course:
             return
@@ -517,10 +456,8 @@ class CoursesView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a course to view details")
             return
         
-        # Get real ID from UserRole
         course_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
-        # Get course details
         course_query = """
             SELECT c.*, d.name as department_name, d.code as department_code
             FROM courses c
@@ -534,7 +471,6 @@ class CoursesView(QWidget):
         
         course = dict(course[0])
         
-        # Get enrolled students
         students_query = """
             SELECT s.display_id, s.student_no, s.name, s.class_level
             FROM students s
@@ -544,7 +480,6 @@ class CoursesView(QWidget):
         """
         students = db_manager.execute_query(students_query, (course_id,))
         
-        # Show dialog
         dialog = CourseDetailsDialog(self, course, students)
         dialog.exec()
     
@@ -555,7 +490,6 @@ class CoursesView(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a course to delete")
             return
         
-        # Get real ID from UserRole
         course_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         course_name = self.table.item(row, 2).text()
         
@@ -580,7 +514,6 @@ class CoursesView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            # For admin, delete filtered or all; for coordinator, only their department
             if user['role'] == 'admin':
                 query = "DELETE FROM courses"
                 db_manager.execute_update(query)
@@ -588,10 +521,8 @@ class CoursesView(QWidget):
                 query = "DELETE FROM courses WHERE department_id = ?"
                 db_manager.execute_update(query, (user['department_id'],))
             
-            # Clear the table before reloading to avoid dataChanged warnings
             self.table.setRowCount(0)
             self.load_courses()
-
 
 class CourseDetailsDialog(QDialog):
     """Dialog to show course details and enrolled students"""
@@ -611,7 +542,6 @@ class CourseDetailsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         
-        # Course info
         info_label = QLabel("Course Information")
         info_label.setStyleSheet(Styles.SUBTITLE_LABEL)
         layout.addWidget(info_label)
@@ -631,7 +561,6 @@ class CourseDetailsDialog(QDialog):
         info_display.setStyleSheet("padding: 10px; background-color: #f0f0f0; border-radius: 5px; color: #000000;")
         layout.addWidget(info_display)
         
-        # Students table
         students_label = QLabel("Enrolled Students")
         students_label.setStyleSheet(Styles.SUBTITLE_LABEL)
         layout.addWidget(students_label)
@@ -645,7 +574,6 @@ class CourseDetailsDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSortingEnabled(True)
         
-        # Populate students
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(self.students))
         for row, student in enumerate(self.students):
@@ -657,7 +585,6 @@ class CourseDetailsDialog(QDialog):
         
         layout.addWidget(self.table)
         
-        # Close button
         close_btn = QPushButton("Close")
         close_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         close_btn.clicked.connect(self.accept)

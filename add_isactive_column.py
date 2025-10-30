@@ -6,7 +6,6 @@ import sqlite3
 from config import DATABASE_PATH
 from datetime import datetime
 
-
 def add_isactive_column():
     """Add isActive column to courses table"""
     
@@ -18,7 +17,6 @@ def add_isactive_column():
     cursor = conn.cursor()
     
     try:
-        # Check if column already exists
         cursor.execute("PRAGMA table_info(courses)")
         columns = [col[1] for col in cursor.fetchall()]
         
@@ -28,13 +26,11 @@ def add_isactive_column():
         
         print("\nAdding isActive column...")
         
-        # Add the column with default value TRUE
         cursor.execute("""
             ALTER TABLE courses 
             ADD COLUMN isActive INTEGER DEFAULT 1
         """)
         
-        # Update all existing courses to be active
         cursor.execute("UPDATE courses SET isActive = 1")
         
         conn.commit()
@@ -42,7 +38,6 @@ def add_isactive_column():
         print("✓ isActive column added successfully")
         print("✓ All existing courses set to active (isActive = 1)")
         
-        # Verify
         cursor.execute("SELECT COUNT(*) FROM courses WHERE isActive = 1")
         count = cursor.fetchone()[0]
         print(f"✓ {count} active courses in database")
@@ -57,7 +52,6 @@ def add_isactive_column():
         raise
     finally:
         conn.close()
-
 
 if __name__ == "__main__":
     try:

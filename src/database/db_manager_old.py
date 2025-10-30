@@ -7,24 +7,15 @@ from typing import Optional, List, Tuple, Any
 import bcrypt
 from config import DATABASE_PATH, DEFAULT_ADMIN
 
-
 class DatabaseManager:
-    """Manages SQLite database connections and operations"""
-    
     def __init__(self):
-        """Initialize database manager"""
         self.db_path = DATABASE_PATH
         
     def get_connection(self) -> sqlite3.Connection:
-        """
-        Get a new database connection
-        
-        Returns:
-            sqlite3.Connection: Database connection object
-        """
+
         conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row  # Enable column access by name
-        conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
+        conn.row_factory = sqlite3.Row  
+        conn.execute("PRAGMA foreign_keys = ON")  
         return conn
     
     def execute_query(self, query: str, params: tuple = ()) -> List[sqlite3.Row]:
@@ -93,15 +84,12 @@ class DatabaseManager:
         try:
             cursor = conn.cursor()
             
-            # Create tables
             self._create_tables(cursor)
             
-            # Check if admin exists
             cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
             admin_count = cursor.fetchone()[0]
             
             if admin_count == 0:
-                # Create default admin and department
                 self._create_default_admin(cursor)
             
             conn.commit()
@@ -112,7 +100,6 @@ class DatabaseManager:
     def _create_tables(self, cursor: sqlite3.Cursor):
         """Create all database tables"""
         
-        # Users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -126,7 +113,6 @@ class DatabaseManager:
             )
         """)
         
-        # Departments table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS departments (
                 id INTEGER PRIMARY KEY,
@@ -136,7 +122,6 @@ class DatabaseManager:
             )
         """)
         
-        # Classrooms table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS classrooms (
                 id INTEGER PRIMARY KEY,
@@ -153,7 +138,6 @@ class DatabaseManager:
             )
         """)
         
-        # Courses table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS courses (
                 id INTEGER PRIMARY KEY,
@@ -169,7 +153,6 @@ class DatabaseManager:
             )
         """)
         
-        # Students table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY,
@@ -182,7 +165,6 @@ class DatabaseManager:
             )
         """)
         
-        # Student-Course relationship table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS student_courses (
                 id INTEGER PRIMARY KEY,
@@ -195,7 +177,6 @@ class DatabaseManager:
             )
         """)
         
-        # Exams table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exams (
                 id INTEGER PRIMARY KEY,
@@ -211,7 +192,6 @@ class DatabaseManager:
             )
         """)
         
-        # Exam-Classroom assignment table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_classrooms (
                 id INTEGER PRIMARY KEY,
@@ -224,7 +204,6 @@ class DatabaseManager:
             )
         """)
         
-        # Exam Seating table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exam_seating (
                 id INTEGER PRIMARY KEY,
@@ -242,7 +221,6 @@ class DatabaseManager:
             )
         """)
         
-        # Create indexes for better performance
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_students_no ON students(student_no)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code)")
@@ -251,7 +229,6 @@ class DatabaseManager:
     def _create_default_admin(self, cursor: sqlite3.Cursor):
         """Create default admin user and departments with coordinators"""
         
-        # Create departments
         departments = [
             ('Bilgisayar Mühendisliği', 'BİLGİSAYAR'),
             ('Yazılım Mühendisliği', 'YAZILIM'),
@@ -268,13 +245,11 @@ class DatabaseManager:
             """, (dept_name, dept_code))
             dept_ids[dept_code] = cursor.lastrowid
         
-        # Hash the default password
         hashed_password = bcrypt.hashpw(
             DEFAULT_ADMIN["password"].encode('utf-8'),
             bcrypt.gensalt()
         )
         
-        # Create admin user (no department assignment)
         cursor.execute("""
             INSERT INTO users (name, email, password, role, department_id)
             VALUES (?, ?, ?, ?, ?)
@@ -283,10 +258,9 @@ class DatabaseManager:
             DEFAULT_ADMIN["email"],
             hashed_password.decode('utf-8'),
             DEFAULT_ADMIN["role"],
-            None  # Admin is not tied to any department
+            None  
         ))
         
-        # Create coordinators for each department
         coordinators = [
             ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
             ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
@@ -300,7 +274,7 @@ class DatabaseManager:
             """, (
                 coord_name,
                 coord_email,
-                hashed_password.decode('utf-8'),  # Same password: admin123
+                hashed_password.decode('utf-8'),  
                 'coordinator',
                 dept_ids[dept_code]
             ))
@@ -308,7 +282,5 @@ class DatabaseManager:
         print(f"Default admin created: {DEFAULT_ADMIN['email']} / {DEFAULT_ADMIN['password']}")
         print(f"Coordinators created for all departments (password: admin123)")
 
-
-# Singleton instance
 db_manager = DatabaseManager()
 

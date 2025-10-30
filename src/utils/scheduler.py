@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Set
 from src.database.db_manager import db_manager
 
-
 class ExamScheduler:
     """Algorithm for scheduling exams with conflict prevention"""
     
@@ -20,15 +19,12 @@ class ExamScheduler:
         
     def load_data(self):
         """Load courses, students, and classrooms from database"""
-        # Load active courses only
         query = "SELECT * FROM courses WHERE department_id = ? AND isActive = 1"
         self.courses = list(db_manager.execute_query(query, (self.department_id,)))
         
-        # Load classrooms
         query = "SELECT * FROM classrooms WHERE department_id = ? ORDER BY capacity DESC"
         self.classrooms = list(db_manager.execute_query(query, (self.department_id,)))
         
-        # Load student enrollments (only for active courses)
         query = """
             SELECT s.id as student_id, c.id as course_id
             FROM students s
@@ -38,7 +34,6 @@ class ExamScheduler:
         """
         enrollments = db_manager.execute_query(query, (self.department_id,))
         
-        # Build student-course mappings
         self.student_courses = {}
         self.course_students = {}
         
@@ -79,14 +74,12 @@ class ExamScheduler:
         if not self.classrooms:
             raise ValueError("No classrooms available. Please add classrooms first.")
         
-        # Generate time slots
         time_slots = self._generate_time_slots(start_date, end_date, disabled_days, 
                                                exam_duration, break_time)
         
         if not time_slots:
             raise ValueError("No valid time slots available in the given date range.")
         
-        # Sort courses by number of students (descending) for better scheduling
         courses_with_count = []
         for course in self.courses:
             student_count = len(self.course_students.get(course['id'], set()))
@@ -94,46 +87,36 @@ class ExamScheduler:
         
         courses_with_count.sort(key=lambda x: x[1], reverse=True)
         
-        # Schedule exams
         scheduled_exams = []
         scheduled_courses = set()
         
-        # Track which students have exams in each time slot (for conflict prevention)
         slot_students = {i: set() for i in range(len(time_slots))}
         
         for course, student_count in courses_with_count:
             course_id = course['id']
             
-            # Find suitable time slot
             slot_index = None
             
             if prevent_conflicts:
-                # Find slot with no student conflicts
                 course_student_ids = self.course_students.get(course_id, set())
                 
                 for i, slot in enumerate(time_slots):
-                    # Check if any student in this course already has an exam in this slot
                     if not slot_students[i].intersection(course_student_ids):
                         slot_index = i
                         break
             else:
-                # Just use next available slot
                 slot_index = len(scheduled_exams) % len(time_slots)
             
             if slot_index is None:
-                # No conflict-free slot found, use next available
                 slot_index = len(scheduled_exams) % len(time_slots)
             
             slot = time_slots[slot_index]
             
-            # Assign classroom(s) based on student count
             assigned_classrooms = self._assign_classrooms(student_count)
             
             if not assigned_classrooms:
-                # If no classrooms can fit, use the largest one
                 assigned_classrooms = [self.classrooms[0]['id']]
             
-            # Create exam record
             exam = {
                 'course_id': course_id,
                 'course_code': course['code'],
@@ -148,7 +131,6 @@ class ExamScheduler:
             scheduled_exams.append(exam)
             scheduled_courses.add(course_id)
             
-            # Mark students as busy in this slot
             if prevent_conflicts:
                 slot_students[slot_index].update(self.course_students.get(course_id, set()))
         
@@ -160,7 +142,6 @@ class ExamScheduler:
         """Generate available time slots for exams"""
         time_slots = []
         
-        # Define exam session times (start times)
         session_times = [
             "09:00",
             "11:00",
@@ -171,9 +152,7 @@ class ExamScheduler:
         current_date = start_date
         
         while current_date <= end_date:
-            # Skip disabled days
             if current_date.weekday() not in disabled_days:
-                # Add sessions for this day
                 for start_time in session_times:
                     time_slots.append({
                         'date': current_date,
@@ -220,17 +199,14 @@ class ExamScheduler:
         Returns:
             Number of exams saved
         """
-        # Clear existing exams for this department
         db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", 
                                  (self.department_id,))
         
         saved_count = 0
         
         for exam in scheduled_exams:
-            # Get next display_id for this exam
             display_id = db_manager.get_next_display_id('exams')
             
-            # Insert exam with display_id and exam_type
             query = """
                 INSERT INTO exams (display_id, course_id, department_id, date, start_time, duration, exam_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -245,7 +221,6 @@ class ExamScheduler:
                 exam_type
             ))
             
-            # Assign classrooms to exam
             for classroom_id in exam['classrooms']:
                 query = """
                     INSERT INTO exam_classrooms (exam_id, classroom_id)
@@ -256,5 +231,4 @@ class ExamScheduler:
             saved_count += 1
         
         return saved_count
-
 

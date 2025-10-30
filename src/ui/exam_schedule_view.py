@@ -15,7 +15,6 @@ from src.utils.styles import Styles
 from config import COLORS, DEFAULT_EXAM_DURATION, DEFAULT_BREAK_TIME
 import pandas as pd
 
-
 class ExamScheduleView(QWidget):
     """Exam scheduling view"""
     
@@ -29,7 +28,6 @@ class ExamScheduleView(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("Exam Schedule")
@@ -38,7 +36,6 @@ class ExamScheduleView(QWidget):
         
         top_bar.addStretch()
         
-        # Department filter (for admin only)
         user = get_current_user()
         if user and user['role'] == 'admin':
             dept_label = QLabel("Department:")
@@ -49,7 +46,6 @@ class ExamScheduleView(QWidget):
             self.dept_filter.addItem("All Departments", None)
             self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
             
-            # Load departments
             departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
             for dept in departments:
                 self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
@@ -57,21 +53,18 @@ class ExamScheduleView(QWidget):
             self.dept_filter.currentIndexChanged.connect(self.load_schedule)
             top_bar.addWidget(self.dept_filter)
         
-        # Generate schedule button
         generate_btn = QPushButton("⚙️ Generate Schedule")
         generate_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         generate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         generate_btn.clicked.connect(self.show_schedule_dialog)
         top_bar.addWidget(generate_btn)
         
-        # Export to Excel button
         export_excel_btn = QPushButton("📊 Export to Excel")
         export_excel_btn.setStyleSheet(Styles.SUCCESS_BUTTON)
         export_excel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         export_excel_btn.clicked.connect(self.export_to_excel)
         top_bar.addWidget(export_excel_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -80,10 +73,8 @@ class ExamScheduleView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Table
         self.table = QTableWidget()
         user = get_current_user()
-        # Add department column for admin
         headers = ["Date", "Time", "Course Code", "Course Name", "Exam Type", "Duration", "Students", "Classrooms"]
         if user and user['role'] == 'admin':
             headers.insert(4, "Department")
@@ -96,7 +87,6 @@ class ExamScheduleView(QWidget):
         self.table.itemChanged.connect(self.on_item_changed)  # Connect to handle changes
         layout.addWidget(self.table)
         
-        # Clear button
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
@@ -108,7 +98,6 @@ class ExamScheduleView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Load data
         self.load_schedule()
     
     def load_schedule(self):
@@ -117,14 +106,12 @@ class ExamScheduleView(QWidget):
         if not user:
             return
         
-        # Re-initialize table structure based on actual logged-in user
         headers = ["Date", "Time", "Course Code", "Course Name", "Exam Type", "Duration", "Students", "Classrooms"]
         if user and user['role'] == 'admin':
             headers.insert(4, "Department")
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         
-        # Build department filter
         if user['role'] == 'admin':
             selected_dept_id = None
             if hasattr(self, 'dept_filter'):
@@ -157,7 +144,6 @@ class ExamScheduleView(QWidget):
         exams = db_manager.execute_query(query, params)
         user = get_current_user()  # Refresh user for column calculation
         
-        # Temporarily disconnect signal to avoid triggering during population
         try:
             self.table.itemChanged.disconnect(self.on_item_changed)
         except:
@@ -168,7 +154,6 @@ class ExamScheduleView(QWidget):
         for row, exam in enumerate(exams):
             col_idx = 0
             
-            # Store exam ID in first column's UserRole
             date_item = QTableWidgetItem(exam['date'])
             date_item.setData(Qt.ItemDataRole.UserRole, exam['id'])  # Store exam ID
             date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # Not editable
@@ -190,7 +175,6 @@ class ExamScheduleView(QWidget):
             self.table.setItem(row, col_idx, name_item)
             col_idx += 1
             
-            # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = exam['department_name'] or 'N/A'
                 dept_code = exam['department_code'] or ''
@@ -199,7 +183,6 @@ class ExamScheduleView(QWidget):
                 self.table.setItem(row, col_idx, dept_item)
                 col_idx += 1
             
-            # Exam type with proper display name
             exam_type = exam['exam_type'] if 'exam_type' in exam.keys() else 'final'
             exam_type_display = {
                 'final': 'Final Exam',
@@ -211,7 +194,6 @@ class ExamScheduleView(QWidget):
             self.table.setItem(row, col_idx, type_item)
             col_idx += 1
             
-            # Duration - EDITABLE (store as integer for easy editing)
             duration_item = QTableWidgetItem(str(exam['duration']))
             duration_item.setToolTip("Double-click to edit duration (minutes)")
             self.table.setItem(row, col_idx, duration_item)
@@ -226,33 +208,28 @@ class ExamScheduleView(QWidget):
             classroom_item.setFlags(classroom_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, col_idx, classroom_item)
         
-        # Reconnect signal
         self.table.itemChanged.connect(self.on_item_changed)
     
     def on_item_changed(self, item):
         """Handle when a table item is changed (for duration editing)"""
         user = get_current_user()
         
-        # Determine which column is Duration based on user role
         if user and user['role'] == 'admin':
             duration_col = 6  # Date, Time, Code, Name, Department, Type, Duration
         else:
             duration_col = 5  # Date, Time, Code, Name, Type, Duration
         
-        # Only process Duration column changes
         if item.column() != duration_col:
             return
         
         row = item.row()
         new_duration_text = item.text().strip()
         
-        # Validate input is a positive integer
         try:
             new_duration = int(new_duration_text)
             if new_duration < 30 or new_duration > 180:
                 raise ValueError("Duration must be between 30 and 180 minutes")
         except ValueError as e:
-            # Disconnect signal before showing message to prevent triggering during reload
             try:
                 self.table.itemChanged.disconnect(self.on_item_changed)
             except:
@@ -264,28 +241,22 @@ class ExamScheduleView(QWidget):
                 f"Please enter a valid duration (30-180 minutes):\n{str(e)}"
             )
             
-            # Reload to reset the value
             self.load_schedule()
             return
         
-        # Get exam ID from the first column
         exam_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
         try:
-            # Disconnect signal during update to prevent recursive calls
             try:
                 self.table.itemChanged.disconnect(self.on_item_changed)
             except:
                 pass
             
-            # Update duration in database
             query = "UPDATE exams SET duration = ? WHERE id = ?"
             db_manager.execute_update(query, (new_duration, exam_id))
             
-            # Reconnect signal
             self.table.itemChanged.connect(self.on_item_changed)
             
-            # Show success message briefly
             QMessageBox.information(
                 self,
                 "Duration Updated",
@@ -297,7 +268,6 @@ class ExamScheduleView(QWidget):
                 "Update Failed",
                 f"Failed to update duration:\n{str(e)}"
             )
-            # Reload to reset the value
             self.load_schedule()
     
     def show_schedule_dialog(self):
@@ -312,7 +282,6 @@ class ExamScheduleView(QWidget):
         if not user:
             return
         
-        # Build department filter based on user role
         if user['role'] == 'admin':
             dept_filter = ""
             params = ()
@@ -320,7 +289,6 @@ class ExamScheduleView(QWidget):
             dept_filter = "WHERE e.department_id = ?"
             params = (user['department_id'],)
         
-        # Get schedule data
         query = f"""
             SELECT e.date, e.start_time, c.code as course_code, c.name as course_name,
                    e.duration, e.exam_type,
@@ -341,7 +309,6 @@ class ExamScheduleView(QWidget):
             QMessageBox.warning(self, "No Data", "No exam schedule to export")
             return
         
-        # Convert to DataFrame
         data = []
         for exam in exams:
             exam_type = exam['exam_type'] if 'exam_type' in exam.keys() else 'final'
@@ -364,7 +331,6 @@ class ExamScheduleView(QWidget):
         
         df = pd.DataFrame(data)
         
-        # Generate default filename
         if user['role'] == 'admin':
             dept_code = 'all'
         else:
@@ -372,7 +338,6 @@ class ExamScheduleView(QWidget):
         
         default_filename = f"exam_schedule_{dept_code}_{datetime.now().strftime('%Y%m%d')}.xlsx"
         
-        # Open file dialog to choose save location
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Exam Schedule",
@@ -383,12 +348,10 @@ class ExamScheduleView(QWidget):
         if not file_path:  # User cancelled
             return
         
-        # Ensure .xlsx extension
         if not file_path.lower().endswith('.xlsx'):
             file_path += '.xlsx'
         
         try:
-            # Save to file
             df.to_excel(file_path, index=False)
             QMessageBox.information(self, "Export Successful", f"Schedule exported to:\n{file_path}")
         except Exception as e:
@@ -404,7 +367,6 @@ class ExamScheduleView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            # For admin, delete filtered or all; for coordinator, only their department
             if user['role'] == 'admin':
                 if hasattr(self, 'dept_filter'):
                     selected_dept_id = self.dept_filter.currentData()
@@ -417,7 +379,6 @@ class ExamScheduleView(QWidget):
             else:
                 db_manager.execute_update("DELETE FROM exams WHERE department_id = ?", (user['department_id'],))
             self.load_schedule()
-
 
 class ScheduleConfigDialog(QDialog):
     """Dialog for configuring exam schedule generation"""
@@ -434,11 +395,9 @@ class ScheduleConfigDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         
-        # Form
         form_layout = QFormLayout()
         form_layout.setSpacing(15)
         
-        # Exam type
         self.exam_type_combo = QComboBox()
         self.exam_type_combo.addItem("Final Exam", "final")
         self.exam_type_combo.addItem("Midterm Exam", "midterm")
@@ -446,19 +405,16 @@ class ScheduleConfigDialog(QDialog):
         self.exam_type_combo.setStyleSheet(Styles.COMBO_BOX)
         form_layout.addRow("Exam Type:", self.exam_type_combo)
         
-        # Start date
         self.start_date_input = QDateEdit()
         self.start_date_input.setCalendarPopup(True)
         self.start_date_input.setDate(QDate.currentDate().addDays(7))
         form_layout.addRow("Start Date:", self.start_date_input)
         
-        # End date
         self.end_date_input = QDateEdit()
         self.end_date_input.setCalendarPopup(True)
         self.end_date_input.setDate(QDate.currentDate().addDays(21))
         form_layout.addRow("End Date:", self.end_date_input)
         
-        # Exam duration
         self.duration_input = QSpinBox()
         self.duration_input.setMinimum(30)
         self.duration_input.setMaximum(180)
@@ -467,7 +423,6 @@ class ScheduleConfigDialog(QDialog):
         self.duration_input.setStyleSheet(Styles.SPIN_BOX)
         form_layout.addRow("Exam Duration:", self.duration_input)
         
-        # Break time
         self.break_input = QSpinBox()
         self.break_input.setMinimum(0)
         self.break_input.setMaximum(60)
@@ -478,7 +433,6 @@ class ScheduleConfigDialog(QDialog):
         
         layout.addLayout(form_layout)
         
-        # Disabled days
         days_label = QLabel("Exclude Days:")
         days_label.setStyleSheet(Styles.NORMAL_LABEL)
         layout.addWidget(days_label)
@@ -498,12 +452,10 @@ class ScheduleConfigDialog(QDialog):
         
         layout.addWidget(days_frame)
         
-        # Conflict prevention
         self.conflict_checkbox = QCheckBox("Prevent student exam conflicts")
         self.conflict_checkbox.setChecked(True)
         layout.addWidget(self.conflict_checkbox)
         
-        # Buttons
         button_layout = QHBoxLayout()
         
         generate_btn = QPushButton("Generate")
@@ -527,7 +479,6 @@ class ScheduleConfigDialog(QDialog):
         prevent_conflicts = self.conflict_checkbox.isChecked()
         exam_type = self.exam_type_combo.currentData()  # Get selected exam type
         
-        # Get disabled days
         disabled_days = [i for i, cb in enumerate(self.day_checkboxes) if cb.isChecked()]
         
         if start_date >= end_date:
@@ -536,7 +487,6 @@ class ScheduleConfigDialog(QDialog):
         
         user = get_current_user()
         
-        # For admin, select department
         dept_id = user['department_id']
         if user['role'] == 'admin':
             from PyQt6.QtWidgets import QInputDialog
@@ -554,10 +504,8 @@ class ScheduleConfigDialog(QDialog):
             dept_id = dept_map[item]
         
         try:
-            # Create scheduler
             scheduler = ExamScheduler(dept_id)
             
-            # Generate schedule
             scheduled_exams = scheduler.schedule_exams(
                 datetime.combine(start_date, datetime.min.time()),
                 datetime.combine(end_date, datetime.min.time()),
@@ -571,7 +519,6 @@ class ScheduleConfigDialog(QDialog):
                 QMessageBox.warning(self, "No Exams", "No courses found to schedule")
                 return
             
-            # Save schedule
             saved_count = scheduler.save_schedule(scheduled_exams, exam_type)
             
             QMessageBox.information(
@@ -583,5 +530,4 @@ class ScheduleConfigDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to generate schedule:\n{str(e)}")
-
 

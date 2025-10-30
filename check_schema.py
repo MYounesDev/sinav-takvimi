@@ -13,12 +13,10 @@ print("=" * 70)
 print("DATABASE SCHEMA ANALYSIS")
 print("=" * 70)
 
-# Check foreign keys setting
 cursor.execute("PRAGMA foreign_keys")
 result = cursor.fetchone()
 print(f"\nForeign Keys: {'ENABLED' if result[0] else 'DISABLED'}")
 
-# Get all tables
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 tables = cursor.fetchall()
 

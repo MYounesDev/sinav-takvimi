@@ -9,10 +9,8 @@ import os
 def create_sample_files():
     """Create sample Excel files from CSV"""
     
-    # Ensure examples directory exists
     os.makedirs('examples', exist_ok=True)
     
-    # Create sample courses Excel
     courses_data = {
         'code': ['CS101', 'CS102', 'CS201', 'CS202', 'CS301', 'CS302', 'CS303', 'CS401', 'CS402', 'CS403'],
         'name': [
@@ -48,7 +46,6 @@ def create_sample_files():
     df_courses.to_excel('examples/sample_courses.xlsx', index=False)
     print("✅ Created: examples/sample_courses.xlsx")
     
-    # Create sample students Excel
     students_data = {
         'student_no': [
             '20210001', '20210002', '20210003', '20210004', '20210005',
@@ -90,9 +87,6 @@ def create_sample_files():
     print("  1. Import courses: examples/sample_courses.xlsx")
     print("  2. Import students: examples/sample_students.xlsx")
 
-
 if __name__ == "__main__":
     create_sample_files()
-
-
 

@@ -13,22 +13,19 @@ from src.utils.auth import get_current_user
 from src.utils.styles import Styles, apply_shadow
 from config import COLORS
 
-
 class ClassroomsView(QWidget):
     """Classrooms management view"""
     
     def __init__(self):
         super().__init__()
-        self.all_classrooms = []  # Store all classrooms for filtering
+        self.all_classrooms = []  
         self.init_ui()
         
     def init_ui(self):
-        """Initialize the UI"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        # Top bar with actions
         top_bar = QHBoxLayout()
         
         title = QLabel("Classroom Management")
@@ -37,7 +34,6 @@ class ClassroomsView(QWidget):
         
         top_bar.addStretch()
         
-        # Department filter (for admin only)
         user = get_current_user()
         if user and user['role'] == 'admin':
             dept_label = QLabel("Department:")
@@ -48,7 +44,6 @@ class ClassroomsView(QWidget):
             self.dept_filter.addItem("All Departments", None)
             self.dept_filter.setStyleSheet(Styles.COMBO_BOX)
             
-            # Load departments
             departments = db_manager.execute_query("SELECT id, name, code FROM departments ORDER BY name")
             for dept in departments:
                 self.dept_filter.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
@@ -56,14 +51,12 @@ class ClassroomsView(QWidget):
             self.dept_filter.currentIndexChanged.connect(self.load_classrooms)
             top_bar.addWidget(self.dept_filter)
         
-        # Add classroom button
         add_btn = QPushButton("➕ Add Classroom")
         add_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         add_btn.clicked.connect(self.add_classroom)
         top_bar.addWidget(add_btn)
         
-        # Refresh button
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -72,7 +65,6 @@ class ClassroomsView(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Search bar
         search_bar = QHBoxLayout()
         search_label = QLabel("🔍 Search:")
         search_label.setStyleSheet(Styles.NORMAL_LABEL)
@@ -86,10 +78,8 @@ class ClassroomsView(QWidget):
         
         layout.addLayout(search_bar)
         
-        # Table
         self.table = QTableWidget()
         user = get_current_user()
-        # Add department column for admin
         headers = ["ID", "Code", "Name", "Capacity", "Rows", "Columns", "Seats/Desk"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
@@ -99,10 +89,9 @@ class ClassroomsView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)  # Enable column sorting
+        self.table.setSortingEnabled(True)  
         layout.addWidget(self.table)
         
-        # Action buttons
         action_bar = QHBoxLayout()
         action_bar.addStretch()
         
@@ -126,7 +115,6 @@ class ClassroomsView(QWidget):
         
         layout.addLayout(action_bar)
         
-        # Load data
         self.load_classrooms()
     
     def load_classrooms(self):
@@ -135,14 +123,12 @@ class ClassroomsView(QWidget):
         if not user:
             return
         
-        # Re-initialize table structure based on actual logged-in user
         headers = ["ID", "Code", "Name", "Capacity", "Rows", "Columns", "Seats/Desk"]
         if user and user['role'] == 'admin':
             headers.insert(3, "Department")
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         
-        # Build department filter
         if user['role'] == 'admin':
             selected_dept_id = None
             if hasattr(self, 'dept_filter'):
@@ -164,24 +150,22 @@ class ClassroomsView(QWidget):
         """
         
         classrooms = db_manager.execute_query(query)
-        self.all_classrooms = classrooms  # Store for filtering
+        self.all_classrooms = classrooms  
         self.populate_table(classrooms)
     
     def populate_table(self, classrooms):
         """Populate table with classroom data"""
         user = get_current_user()
         
-        # Disable sorting while populating
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(classrooms))
         
         for row, classroom in enumerate(classrooms):
             col_idx = 0
             
-            # Display display_id but store real id in UserRole
             id_item = QTableWidgetItem()
             id_item.setData(Qt.ItemDataRole.DisplayRole, int(classroom['display_id']))
-            id_item.setData(Qt.ItemDataRole.UserRole, classroom['id'])  # Store real ID
+            id_item.setData(Qt.ItemDataRole.UserRole, classroom['id'])  
             self.table.setItem(row, col_idx, id_item)
             col_idx += 1
             
@@ -190,7 +174,6 @@ class ClassroomsView(QWidget):
             self.table.setItem(row, col_idx, QTableWidgetItem(classroom['name']))
             col_idx += 1
             
-            # Add department column for admin
             if user and user['role'] == 'admin':
                 dept_name = classroom['department_name'] or 'N/A'
                 dept_code = classroom['department_code'] or ''
@@ -205,7 +188,6 @@ class ClassroomsView(QWidget):
             col_idx += 1
             self.table.setItem(row, col_idx, QTableWidgetItem(str(classroom['seats_per_desk'])))
         
-        # Re-enable sorting
         self.table.setSortingEnabled(True)
     
     def filter_classrooms(self):
@@ -213,14 +195,11 @@ class ClassroomsView(QWidget):
         search_text = self.search_input.text().lower()
         
         if not search_text:
-            # Show all classrooms
             self.populate_table(self.all_classrooms)
             return
         
-        # Filter classrooms
         filtered = []
         for classroom in self.all_classrooms:
-            # Search in display_id, code, and name
             if (str(classroom['display_id']).lower().find(search_text) != -1 or
                 classroom['code'].lower().find(search_text) != -1 or
                 classroom['name'].lower().find(search_text) != -1):
@@ -241,10 +220,8 @@ class ClassroomsView(QWidget):
             QMessageBox.warning(self, "Seçim Yok", "Lütfen düzenlemek için bir derslik seçin")
             return
         
-        # Get real ID from UserRole
         classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         
-        # Get classroom data
         query = "SELECT * FROM classrooms WHERE id = ?"
         result = db_manager.execute_query(query, (classroom_id,))
         
@@ -260,7 +237,6 @@ class ClassroomsView(QWidget):
             QMessageBox.warning(self, "Seçim Yok", "Lütfen silmek için bir derslik seçin")
             return
         
-        # Get real ID from UserRole
         classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         classroom_name = self.table.item(row, 2).text()
         
@@ -286,7 +262,6 @@ class ClassroomsView(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             user = get_current_user()
-            # For admin, delete filtered or all; for coordinator, only their department
             if user['role'] == 'admin':
                 if hasattr(self, 'dept_filter'):
                     selected_dept_id = self.dept_filter.currentData()
@@ -303,7 +278,6 @@ class ClassroomsView(QWidget):
             db_manager.execute_update(query)
             QMessageBox.information(self, "Başarılı", "Tüm derslikler başarıyla silindi!")
             self.load_classrooms()
-
 
 class ClassroomDialog(QDialog):
     """Dialog for adding/editing classrooms"""
@@ -322,12 +296,10 @@ class ClassroomDialog(QDialog):
         
         main_layout = QHBoxLayout(self)
         
-        # Left side - Form
         form_widget = QWidget()
         form_layout = QFormLayout(form_widget)
         form_layout.setSpacing(15)
         
-        # Department selection (for admin only)
         user = get_current_user()
         self.dept_combo = None
         if user and user['role'] == 'admin':
@@ -338,17 +310,14 @@ class ClassroomDialog(QDialog):
                 self.dept_combo.addItem(f"{dept['name']} ({dept['code']})", dept['id'])
             form_layout.addRow("Department:", self.dept_combo)
         
-        # Code
         self.code_input = QLineEdit()
         self.code_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Kod:", self.code_input)
         
-        # Name
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Ad:", self.name_input)
         
-        # Rows
         self.rows_input = QSpinBox()
         self.rows_input.setMinimum(1)
         self.rows_input.setMaximum(50)
@@ -357,7 +326,6 @@ class ClassroomDialog(QDialog):
         self.rows_input.valueChanged.connect(self.update_preview)
         form_layout.addRow("Satır Sayısı:", self.rows_input)
         
-        # Columns
         self.cols_input = QSpinBox()
         self.cols_input.setMinimum(1)
         self.cols_input.setMaximum(50)
@@ -366,7 +334,6 @@ class ClassroomDialog(QDialog):
         self.cols_input.valueChanged.connect(self.update_preview)
         form_layout.addRow("Sütun Sayısı:", self.cols_input)
         
-        # Seats per desk
         self.seats_input = QSpinBox()
         self.seats_input.setMinimum(1)
         self.seats_input.setMaximum(3)
@@ -375,13 +342,11 @@ class ClassroomDialog(QDialog):
         self.seats_input.valueChanged.connect(self.update_preview)
         form_layout.addRow("Masa Başına Kişi:", self.seats_input)
         
-        # Capacity (auto-calculated)
         self.capacity_input = QLineEdit()
         self.capacity_input.setReadOnly(True)
         self.capacity_input.setStyleSheet(Styles.LINE_EDIT)
         form_layout.addRow("Kapasite:", self.capacity_input)
         
-        # Buttons
         button_layout = QHBoxLayout()
         
         save_btn = QPushButton("Kaydet")
@@ -398,7 +363,6 @@ class ClassroomDialog(QDialog):
         
         main_layout.addWidget(form_widget)
         
-        # Right side - Preview (create this BEFORE loading data)
         preview_widget = QWidget()
         preview_layout = QVBoxLayout(preview_widget)
         
@@ -407,7 +371,6 @@ class ClassroomDialog(QDialog):
         preview_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         preview_layout.addWidget(preview_title)
         
-        # Scroll area for preview
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet(Styles.SCROLL_AREA)
@@ -421,25 +384,21 @@ class ClassroomDialog(QDialog):
         
         main_layout.addWidget(preview_widget)
         
-        # Load existing data if editing (AFTER preview grid is created)
         if self.is_edit:
             self.code_input.setText(self.classroom_data['code'] or '')
             self.name_input.setText(self.classroom_data['name'])
             self.rows_input.setValue(self.classroom_data['rows'])
             self.cols_input.setValue(self.classroom_data['cols'])
             self.seats_input.setValue(self.classroom_data['seats_per_desk'])
-            # Set department if admin and editing
             if self.dept_combo and 'department_id' in self.classroom_data:
                 index = self.dept_combo.findData(self.classroom_data['department_id'])
                 if index >= 0:
                     self.dept_combo.setCurrentIndex(index)
         
-        # Update preview initially
         self.update_preview()
     
     def update_preview(self):
         """Update the classroom layout preview"""
-        # Clear existing preview
         while self.preview_grid.count():
             child = self.preview_grid.takeAt(0)
             if child.widget():
@@ -449,26 +408,20 @@ class ClassroomDialog(QDialog):
         cols = self.cols_input.value()
         seats_per_desk = self.seats_input.value()
         
-        # Update capacity: (rows × cols) × seats_per_desk
-        # rows × cols = number of desks
-        # Each desk has seats_per_desk students
         capacity = rows * cols * seats_per_desk
         self.capacity_input.setText(str(capacity))
         
-        # Limit preview for performance
         max_preview_rows = min(rows, 15)
         max_preview_cols = min(cols, 15)
         
         for r in range(max_preview_rows):
             for c in range(max_preview_cols):
-                # Calculate group for coloring
                 group_index = (c // seats_per_desk) % 3
                 
-                # Different colors for groups
                 colors = [
-                    QColor(227, 242, 253),  # Light Blue
-                    QColor(232, 245, 233),  # Light Green
-                    QColor(255, 243, 224),  # Light Orange
+                    QColor(227, 242, 253),  
+                    QColor(232, 245, 233),  
+                    QColor(255, 243, 224),  
                 ]
                 bg_color = colors[group_index]
                 
@@ -505,7 +458,6 @@ class ClassroomDialog(QDialog):
         rows = self.rows_input.value()
         cols = self.cols_input.value()
         seats = self.seats_input.value()
-        # Correct capacity calculation: (rows × cols) × seats_per_desk
         capacity = rows * cols * seats
         
         if not name:
@@ -514,7 +466,6 @@ class ClassroomDialog(QDialog):
         
         user = get_current_user()
         
-        # Get department_id: from combo for admin, from user for coordinator
         if user['role'] == 'admin' and self.dept_combo:
             dept_id = self.dept_combo.currentData()
             if not dept_id:

@@ -40,7 +40,6 @@ def create_classroom_layout_drawing(classroom_data: dict, width: float = 7*inch,
     if rows == 0 or cols == 0:
         return d
     
-    # Calculate cell dimensions
     margin = 20
     available_width = width - 2 * margin
     available_height = height - 2 * margin
@@ -48,20 +47,17 @@ def create_classroom_layout_drawing(classroom_data: dict, width: float = 7*inch,
     cell_width = available_width / cols
     cell_height = available_height / rows
     
-    # Draw grid
     for row in range(rows):
         for col in range(cols):
             x = margin + col * cell_width
             y = height - margin - (row + 1) * cell_height
             
-            # Draw desk border
             desk_rect = Rect(x + 2, y + 2, cell_width - 4, cell_height - 4)
             desk_rect.strokeColor = colors.HexColor('#2C3E50')
             desk_rect.strokeWidth = 1
             desk_rect.fillColor = colors.HexColor('#ECF0F1')
             d.add(desk_rect)
             
-            # Draw seats
             seat_height = (cell_height - 4) / seats_per_desk
             for seat_pos in range(1, seats_per_desk + 1):
                 key = (row, col, seat_pos)
@@ -69,14 +65,12 @@ def create_classroom_layout_drawing(classroom_data: dict, width: float = 7*inch,
                 
                 if key in grid:
                     student = grid[key]
-                    # Occupied seat
                     seat_rect = Rect(x + 4, seat_y + 2, cell_width - 8, seat_height - 4)
                     seat_rect.strokeColor = colors.HexColor('#3498DB')
                     seat_rect.strokeWidth = 1.5
                     seat_rect.fillColor = colors.HexColor('#3498DB')
                     d.add(seat_rect)
                     
-                    # Student info
                     student_text = String(
                         x + cell_width / 2,
                         seat_y + seat_height / 2 + 8,
@@ -97,7 +91,6 @@ def create_classroom_layout_drawing(classroom_data: dict, width: float = 7*inch,
                     )
                     d.add(name_text)
                 else:
-                    # Empty seat
                     seat_rect = Rect(x + 4, seat_y + 2, cell_width - 8, seat_height - 4)
                     seat_rect.strokeColor = colors.HexColor('#BDC3C7')
                     seat_rect.strokeWidth = 1
@@ -128,7 +121,6 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     Returns:
         Generated filename
     """
-    # Get exam details
     exam_query = """
         SELECT e.*, c.code as course_code, c.name as course_name
         FROM exams e
@@ -142,7 +134,6 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     
     exam = exam_result[0]
     
-    # Get classrooms for this exam
     classrooms_query = """
         SELECT cl.id, cl.name
         FROM classrooms cl
@@ -155,19 +146,16 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     if not classrooms:
         raise ValueError("No classrooms assigned to this exam")
     
-    # Generate filename if not provided
     if output_path is None:
         filename = f"seating_plan_{exam['course_code']}_{exam['date'].replace('-', '')}.pdf"
     else:
         filename = output_path
     
-    # Create PDF
     doc = SimpleDocTemplate(filename, pagesize=landscape(A4))
     elements = []
     
     styles = getSampleStyleSheet()
     
-    # Title
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
@@ -180,7 +168,6 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     title = Paragraph(f"Seating Plan - {exam['course_code']} {exam['course_name']}", title_style)
     elements.append(title)
     
-    # Exam info
     info_style = ParagraphStyle(
         'InfoStyle',
         parent=styles['Normal'],
@@ -192,12 +179,9 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
     elements.append(info)
     elements.append(Spacer(1, 0.3 * inch))
     
-    # Create seating plan generator
     generator = SeatingPlanGenerator(exam_id)
     
-    # For each classroom, add layout visualization
     for idx, classroom in enumerate(classrooms):
-        # Classroom title
         classroom_title_style = ParagraphStyle(
             'ClassroomTitle',
             parent=styles['Heading2'],
@@ -210,16 +194,13 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
         classroom_title = Paragraph(f"Classroom: {classroom['name']}", classroom_title_style)
         elements.append(classroom_title)
         
-        # Get classroom layout
         classroom_data = generator.get_seating_by_classroom(classroom['id'])
         
         if classroom_data:
-            # Add visual layout
             layout_drawing = create_classroom_layout_drawing(classroom_data)
             elements.append(layout_drawing)
             elements.append(Spacer(1, 0.2 * inch))
             
-            # Add student list table for this classroom
             seating_query = """
                 SELECT s.student_no, s.name, es.row, es.col, es.seat_position
                 FROM exam_seating es
@@ -262,17 +243,14 @@ def export_seating_plan_pdf(exam_id: int, output_path: str = None) -> str:
                 
                 elements.append(table)
         
-        # Add page break between classrooms (except for the last one)
         if idx < len(classrooms) - 1:
             elements.append(PageBreak())
     
-    # Footer
     elements.append(Spacer(1, 0.3 * inch))
     footer_text = f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')} | Kocaeli University Exam Scheduler"
     footer = Paragraph(footer_text, styles['Normal'])
     elements.append(footer)
     
-    # Build PDF
     doc.build(elements)
     
     return filename
@@ -288,7 +266,6 @@ def export_exam_schedule_pdf(department_id: int) -> str:
     Returns:
         Generated filename
     """
-    # Get department name
     dept_query = "SELECT name, code FROM departments WHERE id = ?"
     dept_result = db_manager.execute_query(dept_query, (department_id,))
     
@@ -297,7 +274,6 @@ def export_exam_schedule_pdf(department_id: int) -> str:
     
     dept = dept_result[0]
     
-    # Get exams
     exams_query = """
         SELECT e.date, e.start_time, c.code as course_code, c.name as course_name,
                e.duration, 
@@ -316,16 +292,13 @@ def export_exam_schedule_pdf(department_id: int) -> str:
     if not exams:
         raise ValueError("No exams scheduled")
     
-    # Generate filename
     filename = f"exam_schedule_{dept['code']}_{datetime.now().strftime('%Y%m%d')}.pdf"
     
-    # Create PDF
     doc = SimpleDocTemplate(filename, pagesize=landscape(A4))
     elements = []
     
     styles = getSampleStyleSheet()
     
-    # Title
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
@@ -339,7 +312,6 @@ def export_exam_schedule_pdf(department_id: int) -> str:
     elements.append(title)
     elements.append(Spacer(1, 0.3 * inch))
     
-    # Table
     table_data = [['Date', 'Time', 'Course Code', 'Course Name', 'Duration', 'Students', 'Classrooms']]
     
     for exam in exams:
@@ -371,7 +343,6 @@ def export_exam_schedule_pdf(department_id: int) -> str:
     
     elements.append(table)
     
-    # Footer
     elements.append(Spacer(1, 0.5 * inch))
     footer_text = f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')} | Kocaeli University Exam Scheduler"
     footer = Paragraph(footer_text, styles['Normal'])

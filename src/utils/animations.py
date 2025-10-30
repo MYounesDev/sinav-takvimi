@@ -6,7 +6,6 @@ from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QPoint, QSize
 from PyQt6.QtWidgets import QWidget, QGraphicsOpacityEffect
 from config import ANIMATION_DURATION
 
-
 class AnimationHelper:
     """Helper class for creating smooth animations"""
     
@@ -29,7 +28,6 @@ class AnimationHelper:
         animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
         animation.start()
         
-        # Store animation reference to prevent garbage collection
         widget._fade_animation = animation
     
     @staticmethod
@@ -56,7 +54,6 @@ class AnimationHelper:
         
         animation.start()
         
-        # Store animation reference
         widget._fade_animation = animation
     
     @staticmethod
@@ -142,5 +139,4 @@ class AnimationHelper:
         animation.start()
         
         widget._bounce_animation = animation
-
 
