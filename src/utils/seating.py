@@ -39,7 +39,7 @@ class SeatingPlanGenerator:
             WHERE sc.course_id = ?
             ORDER BY s.student_no
         """
-        students = list(db_manager.execute_query(students_query, (exam['course_id'],)))
+        students = list(db_manager.execute_query(students_query, (exam["course_id"],)))
         
         if not students:
             return False
@@ -66,11 +66,11 @@ class SeatingPlanGenerator:
             if student_idx >= len(students):
                 break
             
-            total_seats = classroom['rows'] * classroom['cols'] * classroom['seats_per_desk']
+            total_seats = classroom["rows"] * classroom["cols"] * classroom["seats_per_desk"]
             
-            for row in range(classroom['rows']):
-                for col in range(classroom['cols']):
-                    for seat_pos in range(1, classroom['seats_per_desk'] + 1):
+            for row in range(classroom["rows"]):
+                for col in range(classroom["cols"]):
+                    for seat_pos in range(1, classroom["seats_per_desk"] + 1):
                         if student_idx >= len(students):
                             break
                         
@@ -83,8 +83,8 @@ class SeatingPlanGenerator:
                         """
                         db_manager.execute_update(query, (
                             self.exam_id,
-                            student['id'],
-                            classroom['id'],
+                            student["id"],
+                            classroom["id"],
                             row,
                             col,
                             seat_pos
@@ -123,14 +123,14 @@ class SeatingPlanGenerator:
         
         grid = {}
         for seat in seating:
-            key = (seat['row'], seat['col'], seat['seat_position'])
+            key = (seat["row"], seat["col"], seat["seat_position"])
             grid[key] = {
-                'student_no': seat['student_no'],
-                'name': seat['name']
+                "student_no": seat["student_no"],
+                "name": seat["name"]
             }
         
-        classroom['seating_grid'] = grid
-        classroom['total_students'] = len(seating)
+        classroom["seating_grid"] = grid
+        classroom["total_students"] = len(seating)
         
         return classroom
 

@@ -207,7 +207,7 @@ if __name__ == "__main__":
     print("  - Without AUTOINCREMENT: IDs CAN be reused (especially max IDs)")
     print("  - With AUTOINCREMENT:    IDs are NEVER reused")
     print("\nKey difference:")
-    print("  - Old schema: Even if you delete ID=34, it's gone forever")
+    print("  - Old schema: Even if you delete ID=34, it"s gone forever")
     print("  - New schema: If ID=34 is the max and deleted, it can be reused")
     print("\nThe database has been migrated to use the new behavior.")
     print("=" * 60)

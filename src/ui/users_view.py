@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QDialog, QFormLayout, QLineEdit, QMessageBox, QComboBox)
 from src.database.db_manager import db_manager
 from PyQt6.QtCore import Qt
-from src.utils.styles import Styles, configure_table_widget
+from src.utils.styles import Styles, apply_shadow, configure_table_widget
 from src.utils.auth import get_current_user, AuthService
 
 class UsersView(QWidget):
@@ -123,8 +123,6 @@ class UsersView(QWidget):
             created = user['created_at'] or "N/A"
             self.table.setItem(row, 5, QTableWidgetItem(str(created)))
         
-        # Ensure all rows are visible with proper height
-        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
     
     def filter_users(self):

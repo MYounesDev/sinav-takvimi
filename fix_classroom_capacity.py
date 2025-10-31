@@ -47,15 +47,15 @@ try:
     
     conn.commit()
     
-    print(f"\n{'='*50}")
+    print(f"\n{"="*50}")
     print(f"✅ Successfully updated {updated_count} classrooms")
     print(f"✓ {len(classrooms) - updated_count} classrooms were already correct")
-    print(f"{'='*50}\n")
+    print(f"{"="*50}\n")
     
 except Exception as e:
     print(f"❌ Error: {str(e)}")
-    if 'conn' in locals():
+    if "conn" in locals():
         conn.rollback()
 finally:
-    if 'conn' in locals():
+    if "conn" in locals():
         conn.close()

@@ -15,7 +15,7 @@ def backup_database():
         print("No database found. Will create fresh database.")
         return None
     
-    backup_path = DATABASE_PATH.replace('.db', f'_before_global_displayid_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
+    backup_path = DATABASE_PATH.replace(".db", f"_before_global_displayid_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db")
     shutil.copy2(DATABASE_PATH, backup_path)
     print(f"✓ Database backed up to: {backup_path}")
     return backup_path
@@ -44,8 +44,8 @@ def fix_global_display_id():
         print("\nStep 1: Backing up all data...")
         
         tables_data = {}
-        tables = ['departments', 'users', 'classrooms', 'courses', 'students', 
-                  'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
+        tables = ["departments", "users", "classrooms", "courses", "students", 
+                  "student_courses", "exams", "exam_classrooms", "exam_seating", "deleted_ids"]
         
         for table in tables:
             try:
@@ -53,7 +53,7 @@ def fix_global_display_id():
                 tables_data[table] = cursor.fetchall()
                 print(f"  ✓ Backed up {table}: {len(tables_data[table])} rows")
             except Exception as e:
-                print(f"  ⚠ Table {table} doesn't exist or error: {e}")
+                print(f"  ⚠ Table {table} doesn"t exist or error: {e}")
                 tables_data[table] = []
         
         print("\nStep 2: Dropping old tables...")
@@ -93,7 +93,7 @@ def fix_global_display_id():
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
+                role TEXT NOT NULL CHECK(role IN ("admin", "coordinator")),
                 department_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -126,7 +126,7 @@ def fix_global_display_id():
                 name TEXT NOT NULL,
                 instructor TEXT,
                 class_level INTEGER,
-                type TEXT CHECK(type IN ('mandatory', 'elective')),
+                type TEXT CHECK(type IN ("mandatory", "elective")),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)
@@ -167,7 +167,7 @@ def fix_global_display_id():
                 date TEXT NOT NULL,
                 start_time TEXT NOT NULL,
                 duration INTEGER NOT NULL,
-                exam_type TEXT DEFAULT 'final',
+                exam_type TEXT DEFAULT "final",
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -221,7 +221,7 @@ def fix_global_display_id():
         ]
         
         for idx_name, table_name, column in indexes:
-            cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}{column if column.startswith('(') else f'({column})'}")
+            cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}{column if column.startswith("(") else f"({column})"}")
         print("  ✓ All indexes created")
         
         print("\nStep 5: Creating triggers...")
@@ -240,7 +240,7 @@ def fix_global_display_id():
                 BEFORE DELETE ON {table_name}
                 BEGIN
                     INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                    VALUES ('{table_name}', OLD.display_id);
+                    VALUES ("{table_name}", OLD.display_id);
                 END
             """)
         print("  ✓ All triggers created")
@@ -250,84 +250,84 @@ def fix_global_display_id():
         
         global_display_id_counter = 1
         
-        if 'departments' in tables_data and tables_data['departments']:
-            for row in tables_data['departments']:
+        if "departments" in tables_data and tables_data["departments"]:
+            for row in tables_data["departments"]:
                 columns = list(row.keys())
                 values = list(row)
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 cursor.execute(f"INSERT INTO departments ({columns_str}) VALUES ({placeholders})", values)
-            print(f"  ✓ Restored departments: {len(tables_data['departments'])} rows")
+            print(f"  ✓ Restored departments: {len(tables_data["departments"])} rows")
             cursor.execute("SELECT MAX(display_id) FROM departments")
             max_id = cursor.fetchone()[0]
             if max_id:
                 global_display_id_counter = max(global_display_id_counter, max_id + 1)
         
-        if 'users' in tables_data and tables_data['users']:
-            for row in tables_data['users']:
+        if "users" in tables_data and tables_data["users"]:
+            for row in tables_data["users"]:
                 columns = list(row.keys())
                 values = list(row)
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 cursor.execute(f"INSERT INTO users ({columns_str}) VALUES ({placeholders})", values)
-            print(f"  ✓ Restored users: {len(tables_data['users'])} rows")
+            print(f"  ✓ Restored users: {len(tables_data["users"])} rows")
             cursor.execute("SELECT MAX(display_id) FROM users")
             max_id = cursor.fetchone()[0]
             if max_id:
                 global_display_id_counter = max(global_display_id_counter, max_id + 1)
         
-        if 'courses' in tables_data and tables_data['courses']:
-            for row in tables_data['courses']:
+        if "courses" in tables_data and tables_data["courses"]:
+            for row in tables_data["courses"]:
                 columns = list(row.keys())
                 values = list(row)
-                display_id_idx = columns.index('display_id')
+                display_id_idx = columns.index("display_id")
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
                 
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 cursor.execute(f"INSERT INTO courses ({columns_str}) VALUES ({placeholders})", values)
-            print(f"  ✓ Restored courses: {len(tables_data['courses'])} rows with NEW global display_ids")
+            print(f"  ✓ Restored courses: {len(tables_data["courses"])} rows with NEW global display_ids")
         
-        if 'students' in tables_data and tables_data['students']:
-            for row in tables_data['students']:
+        if "students" in tables_data and tables_data["students"]:
+            for row in tables_data["students"]:
                 columns = list(row.keys())
                 values = list(row)
-                display_id_idx = columns.index('display_id')
+                display_id_idx = columns.index("display_id")
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
                 
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 cursor.execute(f"INSERT INTO students ({columns_str}) VALUES ({placeholders})", values)
-            print(f"  ✓ Restored students: {len(tables_data['students'])} rows with NEW global display_ids")
+            print(f"  ✓ Restored students: {len(tables_data["students"])} rows with NEW global display_ids")
         
-        if 'classrooms' in tables_data and tables_data['classrooms']:
-            for row in tables_data['classrooms']:
+        if "classrooms" in tables_data and tables_data["classrooms"]:
+            for row in tables_data["classrooms"]:
                 columns = list(row.keys())
                 values = list(row)
-                display_id_idx = columns.index('display_id')
+                display_id_idx = columns.index("display_id")
                 values[display_id_idx] = global_display_id_counter
                 global_display_id_counter += 1
                 
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 cursor.execute(f"INSERT INTO classrooms ({columns_str}) VALUES ({placeholders})", values)
-            print(f"  ✓ Restored classrooms: {len(tables_data['classrooms'])} rows with NEW global display_ids")
+            print(f"  ✓ Restored classrooms: {len(tables_data["classrooms"])} rows with NEW global display_ids")
         
-        for table in ['student_courses', 'exams', 'exam_classrooms', 'exam_seating']:
+        for table in ["student_courses", "exams", "exam_classrooms", "exam_seating"]:
             if table in tables_data and tables_data[table]:
                 for row in tables_data[table]:
                     columns = list(row.keys())
                     values = list(row)
                     
-                    if table == 'exams' and 'display_id' in columns:
-                        display_id_idx = columns.index('display_id')
+                    if table == "exams" and "display_id" in columns:
+                        display_id_idx = columns.index("display_id")
                         values[display_id_idx] = global_display_id_counter
                         global_display_id_counter += 1
                     
-                    placeholders = ','.join(['?' for _ in columns])
-                    columns_str = ','.join(columns)
+                    placeholders = ",".join(["?" for _ in columns])
+                    columns_str = ",".join(columns)
                     try:
                         cursor.execute(f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})", values)
                     except Exception as e:

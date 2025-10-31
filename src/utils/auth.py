@@ -34,17 +34,17 @@ class AuthService:
             return None
         
         user_row = results[0]
-        stored_password = user_row['password']
+        stored_password = user_row["password"]
         
-        if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+        if bcrypt.checkpw(password.encode("utf-8"), stored_password.encode("utf-8")):
             return {
-                'id': user_row['id'],
-                'name': user_row['name'],
-                'email': user_row['email'],
-                'role': user_row['role'],
-                'department_id': user_row['department_id'],
-                'department_name': user_row['department_name'],
-                'department_code': user_row['department_code']
+                "id": user_row["id"],
+                "name": user_row["name"],
+                "email": user_row["email"],
+                "role": user_row["role"],
+                "department_id": user_row["department_id"],
+                "department_name": user_row["department_name"],
+                "department_code": user_row["department_code"]
             }
         
         return None
@@ -60,7 +60,7 @@ class AuthService:
         Returns:
             Hashed password string
         """
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     
     @staticmethod
     def create_user(name: str, email: str, password: str, role: str, department_id: Optional[int] = None) -> int:

@@ -23,8 +23,8 @@ def clear_all_data():
     try:
         conn.execute("PRAGMA foreign_keys = OFF")
         
-        tables = ['exam_seating', 'exam_classrooms', 'exams', 'student_courses', 
-                  'students', 'courses', 'classrooms', 'users', 'departments', 'deleted_ids']
+        tables = ["exam_seating", "exam_classrooms", "exams", "student_courses", 
+                  "students", "courses", "classrooms", "users", "departments", "deleted_ids"]
         
         print("\nDropping all tables...")
         for table in tables:
@@ -62,7 +62,7 @@ def reset_database():
         print("\n✓ No existing database found. Will create fresh database.")
         return
     
-    backup_path = DATABASE_PATH.replace('.db', f'_before_reset_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
+    backup_path = DATABASE_PATH.replace(".db", f"_before_reset_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db")
     try:
         shutil.copy2(DATABASE_PATH, backup_path)
         print(f"\n✓ Database backed up to: {backup_path}")
@@ -88,7 +88,7 @@ def reset_database():
         print("1. Close any programs using the database (VS Code, Python processes, etc.)")
         print("2. Manually delete the file: {DATABASE_PATH}")
         print("3. Or rename it to something else")
-        print("\nAlternatively, use the 'Clear All Data' option below:")
+        print("\nAlternatively, use the "Clear All Data" option below:")
         clear_all_data()
 
 if __name__ == "__main__":
@@ -97,9 +97,9 @@ if __name__ == "__main__":
                         "All data will be lost (a backup will be created).\n"
                         "Are you sure? (yes/no): ")
         
-        if response.lower() in ['yes', 'y', 'evet', 'e']:
+        if response.lower() in ["yes", "y", "evet", "e"]:
             reset_database()
-            print("\n✓ Next step: Run 'python main.py' to create fresh database")
+            print("\n✓ Next step: Run "python main.py" to create fresh database")
         else:
             print("\n✗ Operation cancelled.")
     except Exception as e:

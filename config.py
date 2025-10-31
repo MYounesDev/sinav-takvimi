@@ -43,5 +43,5 @@ COLORS = {
 }
 
 MAX_FILE_SIZE_MB = 10
-ALLOWED_EXCEL_EXTENSIONS = ['.xlsx', '.xls']
+ALLOWED_EXCEL_EXTENSIONS = [".xlsx", ".xls"]
 

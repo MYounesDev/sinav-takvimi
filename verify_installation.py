@@ -27,10 +27,10 @@ def check_module(module_name):
     """Check if a Python module can be imported"""
     try:
         __import__(module_name)
-        print(f"✅ Module '{module_name}' is installed")
+        print(f"✅ Module "{module_name}" is installed")
         return True
     except ImportError:
-        print(f"❌ Module '{module_name}' is NOT installed")
+        print(f"❌ Module "{module_name}" is NOT installed")
         return False
 
 def main():

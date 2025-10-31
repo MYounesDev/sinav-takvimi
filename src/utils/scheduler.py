@@ -38,8 +38,8 @@ class ExamScheduler:
         self.course_students = {}
         
         for enrollment in enrollments:
-            student_id = enrollment['student_id']
-            course_id = enrollment['course_id']
+            student_id = enrollment["student_id"]
+            course_id = enrollment["course_id"]
             
             if student_id not in self.student_courses:
                 self.student_courses[student_id] = set()
@@ -82,7 +82,7 @@ class ExamScheduler:
         
         courses_with_count = []
         for course in self.courses:
-            student_count = len(self.course_students.get(course['id'], set()))
+            student_count = len(self.course_students.get(course["id"], set()))
             courses_with_count.append((course, student_count))
         
         courses_with_count.sort(key=lambda x: x[1], reverse=True)
@@ -93,7 +93,7 @@ class ExamScheduler:
         slot_students = {i: set() for i in range(len(time_slots))}
         
         for course, student_count in courses_with_count:
-            course_id = course['id']
+            course_id = course["id"]
             
             slot_index = None
             
@@ -115,17 +115,17 @@ class ExamScheduler:
             assigned_classrooms = self._assign_classrooms(student_count)
             
             if not assigned_classrooms:
-                assigned_classrooms = [self.classrooms[0]['id']]
+                assigned_classrooms = [self.classrooms[0]["id"]]
             
             exam = {
-                'course_id': course_id,
-                'course_code': course['code'],
-                'course_name': course['name'],
-                'date': slot['date'].strftime('%Y-%m-%d'),
-                'start_time': slot['start_time'],
-                'duration': exam_duration,
-                'student_count': student_count,
-                'classrooms': assigned_classrooms
+                "course_id": course_id,
+                "course_code": course["code"],
+                "course_name": course["name"],
+                "date": slot["date"].strftime("%Y-%m-%d"),
+                "start_time": slot["start_time"],
+                "duration": exam_duration,
+                "student_count": student_count,
+                "classrooms": assigned_classrooms
             }
             
             scheduled_exams.append(exam)
@@ -155,8 +155,8 @@ class ExamScheduler:
             if current_date.weekday() not in disabled_days:
                 for start_time in session_times:
                     time_slots.append({
-                        'date': current_date,
-                        'start_time': start_time
+                        "date": current_date,
+                        "start_time": start_time
                     })
             
             current_date += timedelta(days=1)
@@ -174,7 +174,7 @@ class ExamScheduler:
             List of classroom IDs
         """
         if student_count == 0:
-            return [self.classrooms[0]['id']] if self.classrooms else []
+            return [self.classrooms[0]["id"]] if self.classrooms else []
         
         assigned = []
         remaining = student_count
@@ -183,12 +183,12 @@ class ExamScheduler:
             if remaining <= 0:
                 break
             
-            assigned.append(classroom['id'])
-            remaining -= classroom['capacity']
+            assigned.append(classroom["id"])
+            remaining -= classroom["capacity"]
         
         return assigned
     
-    def save_schedule(self, scheduled_exams: List[Dict], exam_type: str = 'final') -> int:
+    def save_schedule(self, scheduled_exams: List[Dict], exam_type: str = "final") -> int:
         """
         Save scheduled exams to database
         
@@ -205,7 +205,7 @@ class ExamScheduler:
         saved_count = 0
         
         for exam in scheduled_exams:
-            display_id = db_manager.get_next_display_id('exams')
+            display_id = db_manager.get_next_display_id("exams")
             
             query = """
                 INSERT INTO exams (display_id, course_id, department_id, date, start_time, duration, exam_type)
@@ -213,15 +213,15 @@ class ExamScheduler:
             """
             exam_id = db_manager.execute_update(query, (
                 display_id,
-                exam['course_id'],
+                exam["course_id"],
                 self.department_id,
-                exam['date'],
-                exam['start_time'],
-                exam['duration'],
+                exam["date"],
+                exam["start_time"],
+                exam["duration"],
                 exam_type
             ))
             
-            for classroom_id in exam['classrooms']:
+            for classroom_id in exam["classrooms"]:
                 query = """
                     INSERT INTO exam_classrooms (exam_id, classroom_id)
                     VALUES (?, ?)

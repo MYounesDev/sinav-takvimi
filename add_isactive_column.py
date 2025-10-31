@@ -20,7 +20,7 @@ def add_isactive_column():
         cursor.execute("PRAGMA table_info(courses)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'isActive' in columns:
+        if "isActive" in columns:
             print("✓ isActive column already exists in courses table")
             return
         

@@ -194,9 +194,6 @@ class SeatingPlanView(QWidget):
             if seat['seat_position'] > 1:
                 seat_label += f" ({seat['seat_position']})"
             self.table.setItem(row, col_idx, QTableWidgetItem(seat_label))
-        
-        # Ensure all rows are visible with proper height
-        self.table.verticalHeader().setDefaultSectionSize(38)
     
     def generate_seating(self):
         """Generate seating plan for selected exam"""

@@ -8,8 +8,8 @@ import bcrypt
 import sys
 from config import DATABASE_PATH
 
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 def add_coordinators():
     """Add coordinator accounts for all departments"""
@@ -21,22 +21,22 @@ def add_coordinators():
         cursor.execute("SELECT id, name, code FROM departments")
         departments = cursor.fetchall()
         
-        dept_map = {dept['code']: dept['id'] for dept in departments}
+        dept_map = {dept["code"]: dept["id"] for dept in departments}
         
         print(f"Found {len(departments)} departments:")
         for dept in departments:
-            print(f"  - {dept['name']} ({dept['code']})")
+            print(f"  - {dept["name"]} ({dept["code"]})")
         
         coordinators = [
-            ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
-            ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK'),
+            ("Bilgisayar Koordinatörü", "bilgisayar@gmail.com", "BİLGİSAYAR"),
+            ("Yazılım Koordinatörü", "yazilim@gmail.com", "YAZILIM"),
+            ("Elektrik Koordinatörü", "elektrik@gmail.com", "ELEKTRİK"),
 
         ]
         
-        default_password = 'admin123'
+        default_password = "admin123"
         hashed_password = bcrypt.hashpw(
-            default_password.encode('utf-8'),
+            default_password.encode("utf-8"),
             bcrypt.gensalt()
         )
         
@@ -47,11 +47,11 @@ def add_coordinators():
                 print(f"  ⚠️  Department {dept_code} not found. Creating it...")
                 
                 dept_names = {
-                    'BİLGİSAYAR': 'Bilgisayar Mühendisliği',
-                    'YAZILIM': 'Yazılım Mühendisliği',
-                    'ELEKTRİK': 'Elektrik Mühendisliği',
-                    'ELEKTRONİK': 'Elektronik Mühendisliği',
-                    'İNŞAAT': 'İnşaat Mühendisliği'
+                    "BİLGİSAYAR": "Bilgisayar Mühendisliği",
+                    "YAZILIM": "Yazılım Mühendisliği",
+                    "ELEKTRİK": "Elektrik Mühendisliği",
+                    "ELEKTRONİK": "Elektronik Mühendisliği",
+                    "İNŞAAT": "İnşaat Mühendisliği"
                 }
                 
                 cursor.execute("""
@@ -73,7 +73,7 @@ def add_coordinators():
             if existing:
                 cursor.execute("""
                     UPDATE users 
-                    SET name = ?, department_id = ?, role = 'coordinator'
+                    SET name = ?, department_id = ?, role = "coordinator"
                     WHERE email = ?
                 """, (coord_name, dept_id, coord_email))
                 print(f"  ✓ Updated: {coord_name} ({coord_email})")
@@ -84,8 +84,8 @@ def add_coordinators():
                 """, (
                     coord_name,
                     coord_email,
-                    hashed_password.decode('utf-8'),
-                    'coordinator',
+                    hashed_password.decode("utf-8"),
+                    "coordinator",
                     dept_id
                 ))
                 print(f"  ✓ Created: {coord_name} ({coord_email})")
@@ -100,16 +100,16 @@ def add_coordinators():
             SELECT u.name, u.email, d.name as dept_name
             FROM users u
             JOIN departments d ON u.department_id = d.id
-            WHERE u.role = 'coordinator'
+            WHERE u.role = "coordinator"
             ORDER BY d.name
         """)
         
         coordinators = cursor.fetchall()
         
         for coord in coordinators:
-            print(f"\nDepartment: {coord['dept_name']}")
-            print(f"  Name:     {coord['name']}")
-            print(f"  Email:    {coord['email']}")
+            print(f"\nDepartment: {coord["dept_name"]}")
+            print(f"  Name:     {coord["name"]}")
+            print(f"  Email:    {coord["email"]}")
             print(f"  Password: admin123")
         
         print("\n" + "="*60)
@@ -123,7 +123,7 @@ def add_coordinators():
     finally:
         conn.close()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("="*60)
     print("ADDING COORDINATOR ACCOUNTS")
     print("="*60)

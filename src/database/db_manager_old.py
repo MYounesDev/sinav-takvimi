@@ -106,7 +106,7 @@ class DatabaseManager:
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
+                role TEXT NOT NULL CHECK(role IN ("admin", "coordinator")),
                 department_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -145,8 +145,8 @@ class DatabaseManager:
                 code TEXT NOT NULL,
                 name TEXT NOT NULL,
                 instructor TEXT,
-                class_level INTEGER,
-                type TEXT CHECK(type IN ('mandatory', 'elective')),
+                class_levmanual INTEGER,
+                type TEXT CHECK(type IN ("mandatory", "elective")),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)
@@ -159,7 +159,7 @@ class DatabaseManager:
                 department_id INTEGER NOT NULL,
                 student_no TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
-                class_level INTEGER,
+                class_levmanual INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
             )
@@ -185,7 +185,7 @@ class DatabaseManager:
                 date TEXT NOT NULL,
                 start_time TEXT NOT NULL,
                 duration INTEGER NOT NULL,
-                exam_type TEXT DEFAULT 'final',
+                exam_type TEXT DEFAULT "final",
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -230,11 +230,11 @@ class DatabaseManager:
         """Create default admin user and departments with coordinators"""
         
         departments = [
-            ('Bilgisayar Mühendisliği', 'BİLGİSAYAR'),
-            ('Yazılım Mühendisliği', 'YAZILIM'),
-            ('Elektrik Mühendisliği', 'ELEKTRİK'),
-            ('Elektronik Mühendisliği', 'ELEKTRONİK'),
-            ('İnşaat Mühendisliği', 'İNŞAAT')
+            ("Bilgisayar Mühendisliği", "BİLGİSAYAR"),
+            ("Yazılım Mühendisliği", "YAZILIM"),
+            ("Manualektrik Mühendisliği", "ELEKTRİK"),
+            ("Manualektronik Mühendisliği", "ELEKTRONİK"),
+            ("İnşaat Mühendisliği", "İNŞAAT")
         ]
         
         dept_ids = {}
@@ -246,7 +246,7 @@ class DatabaseManager:
             dept_ids[dept_code] = cursor.lastrowid
         
         hashed_password = bcrypt.hashpw(
-            DEFAULT_ADMIN["password"].encode('utf-8'),
+            DEFAULT_ADMIN["password"].encode("utf-8"),
             bcrypt.gensalt()
         )
         
@@ -256,15 +256,15 @@ class DatabaseManager:
         """, (
             DEFAULT_ADMIN["name"],
             DEFAULT_ADMIN["email"],
-            hashed_password.decode('utf-8'),
+            hashed_password.decode("utf-8"),
             DEFAULT_ADMIN["role"],
             None  
         ))
         
         coordinators = [
-            ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
-            ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK')
+            ("Bilgisayar Coordinatorü", "bilgisayar@gmail.com", "BİLGİSAYAR"),
+            ("Yazılım Coordinatorü", "yazilim@gmail.com", "YAZILIM"),
+            ("Manualektrik Coordinatorü", "manualektrik@gmail.com", "ELEKTRİK")
         ]
         
         for coord_name, coord_email, dept_code in coordinators:
@@ -274,12 +274,12 @@ class DatabaseManager:
             """, (
                 coord_name,
                 coord_email,
-                hashed_password.decode('utf-8'),  
-                'coordinator',
+                hashed_password.decode("utf-8"),  
+                "coordinator",
                 dept_ids[dept_code]
             ))
         
-        print(f"Default admin created: {DEFAULT_ADMIN['email']} / {DEFAULT_ADMIN['password']}")
+        print(f"Default admin created: {DEFAULT_ADMIN["email"]} / {DEFAULT_ADMIN["password"]}")
         print(f"Coordinators created for all departments (password: admin123)")
 
 db_manager = DatabaseManager()

@@ -1,5 +1,5 @@
 """
-Migration script to set admin users' department_id to NULL
+Migration script to set admin users" department_id to NULL
 """
 
 import sys
@@ -11,7 +11,7 @@ def migrate():
         query = """
             UPDATE users 
             SET department_id = NULL 
-            WHERE role = 'admin' AND department_id IS NOT NULL
+            WHERE role = "admin" AND department_id IS NOT NULL
         """
         
         rows_affected = db_manager.execute_update(query)
@@ -22,8 +22,8 @@ def migrate():
         admins = db_manager.execute_query("SELECT id, name, email, department_id FROM users WHERE role = 'admin'")
         print(f"\n📋 Current admin users:")
         for admin in admins:
-            dept_status = "NULL (correct)" if admin['department_id'] is None else f"ID: {admin['department_id']} (needs update)"
-            print(f"   - {admin['name']} ({admin['email']}): {dept_status}")
+            dept_status = "NULL (correct)" if admin["department_id"] is None else f"ID: {admin["department_id"]} (needs update)"
+            print(f"   - {admin["name"]} ({admin["email"]}): {dept_status}")
         
     except Exception as e:
         print(f"❌ Migration failed: {str(e)}")

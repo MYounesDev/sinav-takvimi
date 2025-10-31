@@ -51,7 +51,7 @@ def create_sample_files():
         return True
     except subprocess.CalledProcessError:
         print("⚠️ Could not create sample files (optional)")
-        return True  # Don't fail if this doesn't work
+        return True  # Don"t fail if this doesn"t work
 
 def create_directories():
     """Create necessary directories"""

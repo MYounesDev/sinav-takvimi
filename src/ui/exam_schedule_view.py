@@ -12,6 +12,7 @@ from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
 from src.utils.scheduler import ExamScheduler
 from src.utils.styles import Styles, configure_table_widget
+from config import COLORS, DEFAULT_EXAM_DURATION, DEFAULT_BREAK_TIME
 import pandas as pd
 
 class ExamScheduleView(QWidget):
@@ -84,6 +85,8 @@ class ExamScheduleView(QWidget):
         # Configure table for proper visibility and scrolling
         configure_table_widget(self.table, min_row_height=38, min_total_height=450)
         
+        # Allow editing (override EditTrigger from helper)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  
         self.table.itemChanged.connect(self.on_item_changed)  
         layout.addWidget(self.table)
         
@@ -207,9 +210,6 @@ class ExamScheduleView(QWidget):
             classroom_item = QTableWidgetItem(exam['classroom_names'] or "N/A")
             classroom_item.setFlags(classroom_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, col_idx, classroom_item)
-        
-        # Ensure all rows are visible with proper height
-        self.table.verticalHeader().setDefaultSectionSize(38)
         
         self.table.itemChanged.connect(self.on_item_changed)
     

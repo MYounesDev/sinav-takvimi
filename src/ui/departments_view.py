@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
 from PyQt6.QtCore import Qt
 from src.database.db_manager import db_manager
 from src.utils.auth import get_current_user
-from src.utils.styles import Styles
+from src.utils.styles import Styles, configure_table_widget
 
 class DepartmentsView(QWidget):
     """Departments management view (Admin only)"""
@@ -51,9 +51,10 @@ class DepartmentsView(QWidget):
             "ID", "Name", "Code", "Created"
         ])
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
+        # Configure table for proper visibility and scrolling
+        configure_table_widget(self.table, min_row_height=38, min_total_height=450)
+        
         layout.addWidget(self.table)
         
         action_bar = QHBoxLayout()

@@ -231,7 +231,7 @@ COLORS = {
 
 ## 📄 License
 
-This project is developed for educational purposes as part of Kocaeli University's Yazlab-1 course.
+This project is developed for educational purposes as part of Kocaeli University"s Yazlab-1 course.
 
 ## 👥 Support
 

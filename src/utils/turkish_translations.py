@@ -85,8 +85,8 @@ DAYS_TR = {
 MESSAGES = {
     "export_success": "Başarıyla dışa aktarıldı",
     "export_failed": "Dışa aktarma başarısız",
-    "no_data": "Dışa aktarılacak veri bulunamadı",
-    "select_exam": "Lütfen bir sınav seçiniz",
+    "no_data": "Dışa aktarılacak veri not found",
+    "select_exam": "Please bir sınav selectiz",
     "generating": "Oluşturuluyor...",
 }
 

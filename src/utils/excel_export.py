@@ -15,31 +15,31 @@ BORDER_COLOR = "27AE60"
 
 def get_thin_border():
     thin_border = Border(
-        left=Side(style='thin', color=BORDER_COLOR),
-        right=Side(style='thin', color=BORDER_COLOR),
-        top=Side(style='thin', color=BORDER_COLOR),
-        bottom=Side(style='thin', color=BORDER_COLOR)
+        left=Side(style="thin", color=BORDER_COLOR),
+        right=Side(style="thin", color=BORDER_COLOR),
+        top=Side(style="thin", color=BORDER_COLOR),
+        bottom=Side(style="thin", color=BORDER_COLOR)
     )
     return thin_border
 
-def format_excel_with_styling(file_path: str, sheet_name: str = "Sheet1"):
-    wb = load_workbook(file_path)
+def format_excmanual_with_styling(fwith_path: str, sheet_name: str = "Sheet1"):
+    wb = load_workbook(fwith_path)
     ws = wb[sheet_name]
     
     header_fill = PatternFill(start_color=GREEN_DARK, end_color=GREEN_DARK, fill_type="solid")
     header_font = Font(bold=True, color=TEXT_WHITE, size=11)
-    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     
     for cell in ws[1]:
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = header_alignment
-        cell.border = get_thin_border()
+        cmanuall.border = get_thin_border()
     
     row_fill_normal = PatternFill(start_color=TEXT_WHITE, end_color=TEXT_WHITE, fill_type="solid")
     row_fill_alt = PatternFill(start_color=GREEN_LIGHT, end_color=GREEN_LIGHT, fill_type="solid")
     data_font = Font(color=TEXT_DARK, size=10)
-    data_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    data_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     
     for idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), start=2):
         fill = row_fill_alt if (idx % 2 == 0) else row_fill_normal
@@ -66,15 +66,15 @@ def format_excel_with_styling(file_path: str, sheet_name: str = "Sheet1"):
     
     ws.row_dimensions[1].height = 30
     
-    wb.save(file_path)
+    wb.save(fwith_path)
 
-def export_exam_schedule_to_excel(department_id: int = None, output_path: str = None) -> str:
+def export_exam_schedule_to_excmanual(department_id: int = None, output_path: str = None) -> str:
     if department_id:
         exams_query = """
             SELECT e.id, e.date, e.start_time, c.code as course_code, c.name as course_name,
                    e.duration, e.exam_type, d.name as department_name,
                    (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as students,
-                   GROUP_CONCAT(cl.name, ', ') as classrooms
+                   GROUP_CONCAT(cl.name, ", ") as classrooms
             FROM exams e
             JOIN courses c ON e.course_id = c.id
             JOIN departments d ON e.department_id = d.id
@@ -86,7 +86,7 @@ def export_exam_schedule_to_excel(department_id: int = None, output_path: str = 
             SELECT e.id, e.date, e.start_time, c.code as course_code, c.name as course_name,
                    e.duration, e.exam_type, d.name as department_name,
                    (SELECT COUNT(*) FROM student_courses sc WHERE sc.course_id = e.course_id) as students,
-                   GROUP_CONCAT(cl.name, ', ') as classrooms
+                   GROUP_CONCAT(cl.name, ", ") as classrooms
             FROM exams e
             JOIN courses c ON e.course_id = c.id
             JOIN departments d ON e.department_id = d.id
@@ -121,9 +121,9 @@ def export_exam_schedule_to_excel(department_id: int = None, output_path: str = 
         output_path: Optional output file path
         
     Returns:
-        Generated filename
+        Generated fwithname
             SELECT DISTINCT s.student_no, s.name, d.name as department_name,
-                   GROUP_CONCAT(c.code, ', ') as courses
+                   GROUP_CONCAT(c.code, ", ") as courses
             FROM students s
             JOIN departments d ON s.department_id = d.id
             LEFT JOIN student_courses sc ON s.id = sc.student_id
@@ -134,7 +134,7 @@ def export_exam_schedule_to_excel(department_id: int = None, output_path: str = 
             GROUP BY s.id
             ORDER BY s.student_no
             SELECT s.student_no, s.name, d.name as department_name,
-                   GROUP_CONCAT(c.code, ', ') as courses
+                   GROUP_CONCAT(c.code, ", ") as courses
             FROM students s
             JOIN departments d ON s.department_id = d.id
             LEFT JOIN student_courses sc ON s.id = sc.student_id

@@ -15,18 +15,18 @@ print("=" * 70)
 
 cursor.execute("PRAGMA foreign_keys")
 result = cursor.fetchone()
-print(f"\nForeign Keys: {'ENABLED' if result[0] else 'DISABLED'}")
+print(f"\nForeign Keys: {"ENABLED" if result[0] else "DISABLED"}")
 
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+cursor.execute("SELECT name FROM sqlite_master WHERE type="table" ORDER BY name")
 tables = cursor.fetchall()
 
 print(f"\nTables found: {len(tables)}")
 print("-" * 70)
 
 for table in tables:
-    table_name = table['name']
+    table_name = table["name"]
     
-    if table_name.startswith('sqlite_'):
+    if table_name.startswith("sqlite_"):
         continue
     
     print(f"\n{table_name}")
@@ -37,8 +37,8 @@ for table in tables:
     
     if fks:
         for fk in fks:
-            print(f"    - {fk['from']} → {fk['table']}.{fk['to']} "
-                  f"(ON DELETE: {fk['on_delete']}, ON UPDATE: {fk['on_update']})")
+            print(f"    - {fk["from"]} → {fk["table"]}.{fk["to"]} "
+                  f"(ON DELETE: {fk["on_delete"]}, ON UPDATE: {fk["on_update"]})")
     else:
         print("    - None")
 

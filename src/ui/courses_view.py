@@ -200,8 +200,6 @@ class CoursesView(QWidget):
                 status_item.setForeground(Qt.GlobalColor.red)
             self.table.setItem(row, col_idx, status_item)
         
-        # Ensure all rows are visible with proper height
-        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
     
     def filter_courses(self):
@@ -573,7 +571,7 @@ class CourseDetailsDialog(QDialog):
         self.table.setStyleSheet(Styles.TABLE_WIDGET)
         
         # Configure table for proper visibility and scrolling
-        configure_table_widget(self.table, min_row_height=38, min_total_height=350)
+        configure_table_widget(self.table, min_row_height=36, min_total_height=350)
         
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(self.students))
@@ -582,9 +580,6 @@ class CourseDetailsDialog(QDialog):
             self.table.setItem(row, 1, QTableWidgetItem(student['student_no']))
             self.table.setItem(row, 2, QTableWidgetItem(student['name']))
             self.table.setItem(row, 3, QTableWidgetItem(str(student['class_level']) if student['class_level'] else ""))
-        
-        # Ensure all rows are visible with proper height
-        self.table.verticalHeader().setDefaultSectionSize(38)
         self.table.setSortingEnabled(True)
         
         layout.addWidget(self.table)

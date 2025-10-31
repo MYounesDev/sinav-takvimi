@@ -4,7 +4,7 @@ import sqlite3
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from src.database.db_manager import db_manager
 from config import DATABASE_PATH
@@ -14,13 +14,13 @@ def test_display_id_generation():
     
     dept_id = 1 
     
-    next_id = db_manager.get_next_display_id('courses', dept_id)
+    next_id = db_manager.get_next_display_id("courses", dept_id)
     print(f"✓ Next display_id for courses (dept {dept_id}): {next_id}")
     
-    next_id = db_manager.get_next_display_id('students', dept_id)
+    next_id = db_manager.get_next_display_id("students", dept_id)
     print(f"✓ Next display_id for students (dept {dept_id}): {next_id}")
     
-    next_id = db_manager.get_next_display_id('departments')
+    next_id = db_manager.get_next_display_id("departments")
     print(f"✓ Next display_id for departments: {next_id}")
     
     return True
@@ -31,7 +31,7 @@ def test_course_insert():
     
     try:
         dept_id = 1
-        display_id = db_manager.get_next_display_id('courses', dept_id)
+        display_id = db_manager.get_next_display_id("courses", dept_id)
         
         query = """
             INSERT INTO courses (display_id, department_id, code, name, instructor)
@@ -39,7 +39,7 @@ def test_course_insert():
         """
         
         course_id = db_manager.execute_update(query, (
-            display_id, dept_id, 'TEST101', 'Test Course Import', 'Test Instructor'
+            display_id, dept_id, "TEST101", "Test Course Import", "Test Instructor"
         ))
         
         print(f"✓ Course inserted with ID: {course_id}, display_id: {display_id}")
@@ -51,7 +51,7 @@ def test_course_insert():
         
         if verify:
             row = verify[0]
-            print(f"✓ Verified: ID={row['id']}, Display ID={row['display_id']}, Code={row['code']}")
+            print(f"✓ Verified: ID={row["id"]}, Display ID={row["display_id"]}, Code={row["code"]}")
         
         db_manager.execute_update("DELETE FROM courses WHERE id = ?", (course_id,))
         print("✓ Test course deleted")
@@ -68,7 +68,7 @@ def test_student_insert():
     
     try:
         dept_id = 1
-        display_id = db_manager.get_next_display_id('students', dept_id)
+        display_id = db_manager.get_next_display_id("students", dept_id)
         
         query = """
             INSERT INTO students (display_id, department_id, student_no, name)
@@ -76,7 +76,7 @@ def test_student_insert():
         """
         
         student_id = db_manager.execute_update(query, (
-            display_id, dept_id, 'TEST123456', 'Test Student Import'
+            display_id, dept_id, "TEST123456", "Test Student Import"
         ))
         
         print(f"✓ Student inserted with ID: {student_id}, display_id: {display_id}")
@@ -88,7 +88,7 @@ def test_student_insert():
         
         if verify:
             row = verify[0]
-            print(f"✓ Verified: ID={row['id']}, Display ID={row['display_id']}, No={row['student_no']}")
+            print(f"✓ Verified: ID={row["id"]}, Display ID={row["display_id"]}, No={row["student_no"]}")
         
         db_manager.execute_update("DELETE FROM students WHERE id = ?", (student_id,))
         print("✓ Test student deleted")
@@ -105,7 +105,7 @@ def test_classroom_insert():
     
     try:
         dept_id = 1
-        display_id = db_manager.get_next_display_id('classrooms', dept_id)
+        display_id = db_manager.get_next_display_id("classrooms", dept_id)
         
         query = """
             INSERT INTO classrooms (display_id, department_id, code, name, capacity, rows, cols)
@@ -113,7 +113,7 @@ def test_classroom_insert():
         """
         
         classroom_id = db_manager.execute_update(query, (
-            display_id, dept_id, 'TEST-01', 'Test Classroom', 30, 5, 6
+            display_id, dept_id, "TEST-01", "Test Classroom", 30, 5, 6
         ))
         
         print(f"✓ Classroom inserted with ID: {classroom_id}, display_id: {display_id}")
@@ -125,7 +125,7 @@ def test_classroom_insert():
         
         if verify:
             row = verify[0]
-            print(f"✓ Verified: ID={row['id']}, Display ID={row['display_id']}, Code={row['code']}")
+            print(f"✓ Verified: ID={row["id"]}, Display ID={row["display_id"]}, Code={row["code"]}")
         
         db_manager.execute_update("DELETE FROM classrooms WHERE id = ?", (classroom_id,))
         print("✓ Test classroom deleted")

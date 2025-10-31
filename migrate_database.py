@@ -10,7 +10,7 @@ from config import DATABASE_PATH
 def backup_database():
     """Create a backup of the current database"""
     if os.path.exists(DATABASE_PATH):
-        backup_path = DATABASE_PATH.replace('.db', '_backup.db')
+        backup_path = DATABASE_PATH.replace(".db", "_backup.db")
         import shutil
         shutil.copy2(DATABASE_PATH, backup_path)
         print(f"✓ Database backup created: {backup_path}")
@@ -29,7 +29,7 @@ def migrate_table(cursor, table_name, create_sql, columns):
     """
     print(f"\nMigrating table: {table_name}")
     
-    cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+    cursor.execute(f"SELECT name FROM sqlite_master WHERE type="table" AND name="{table_name}"")
     if not cursor.fetchone():
         print(f"  Table {table_name} does not exist, skipping...")
         return
@@ -66,24 +66,24 @@ def migrate_database():
     try:
         tables = [
             {
-                'name': 'users',
-                'sql': """
+                "name": "users",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL,
                         email TEXT UNIQUE NOT NULL,
                         password TEXT NOT NULL,
-                        role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
+                        role TEXT NOT NULL CHECK(role IN ("admin", "coordinator")),
                         department_id INTEGER,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
-                'columns': ['id', 'name', 'email', 'password', 'role', 'department_id', 'created_at']
+                "columns": ["id", "name", "email", "password", "role", "department_id", "created_at"]
             },
             {
-                'name': 'departments',
-                'sql': """
+                "name": "departments",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS departments (
                         id INTEGER PRIMARY KEY,
                         name TEXT UNIQUE NOT NULL,
@@ -91,11 +91,11 @@ def migrate_database():
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """,
-                'columns': ['id', 'name', 'code', 'created_at']
+                "columns": ["id", "name", "code", "created_at"]
             },
             {
-                'name': 'classrooms',
-                'sql': """
+                "name": "classrooms",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS classrooms (
                         id INTEGER PRIMARY KEY,
                         department_id INTEGER NOT NULL,
@@ -110,11 +110,11 @@ def migrate_database():
                         UNIQUE(department_id, code)
                     )
                 """,
-                'columns': ['id', 'department_id', 'code', 'name', 'capacity', 'rows', 'cols', 'seats_per_desk', 'created_at']
+                "columns": ["id", "department_id", "code", "name", "capacity", "rows", "cols", "seats_per_desk", "created_at"]
             },
             {
-                'name': 'courses',
-                'sql': """
+                "name": "courses",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS courses (
                         id INTEGER PRIMARY KEY,
                         department_id INTEGER NOT NULL,
@@ -122,17 +122,17 @@ def migrate_database():
                         name TEXT NOT NULL,
                         instructor TEXT,
                         class_level INTEGER,
-                        type TEXT CHECK(type IN ('mandatory', 'elective')),
+                        type TEXT CHECK(type IN ("mandatory", "elective")),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                         UNIQUE(department_id, code)
                     )
                 """,
-                'columns': ['id', 'department_id', 'code', 'name', 'instructor', 'class_level', 'type', 'created_at']
+                "columns": ["id", "department_id", "code", "name", "instructor", "class_level", "type", "created_at"]
             },
             {
-                'name': 'students',
-                'sql': """
+                "name": "students",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS students (
                         id INTEGER PRIMARY KEY,
                         department_id INTEGER NOT NULL,
@@ -143,11 +143,11 @@ def migrate_database():
                         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
-                'columns': ['id', 'department_id', 'student_no', 'name', 'class_level', 'created_at']
+                "columns": ["id", "department_id", "student_no", "name", "class_level", "created_at"]
             },
             {
-                'name': 'student_courses',
-                'sql': """
+                "name": "student_courses",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS student_courses (
                         id INTEGER PRIMARY KEY,
                         student_id INTEGER NOT NULL,
@@ -158,11 +158,11 @@ def migrate_database():
                         UNIQUE(student_id, course_id)
                     )
                 """,
-                'columns': ['id', 'student_id', 'course_id', 'created_at']
+                "columns": ["id", "student_id", "course_id", "created_at"]
             },
             {
-                'name': 'exams',
-                'sql': """
+                "name": "exams",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS exams (
                         id INTEGER PRIMARY KEY,
                         course_id INTEGER NOT NULL,
@@ -170,17 +170,17 @@ def migrate_database():
                         date TEXT NOT NULL,
                         start_time TEXT NOT NULL,
                         duration INTEGER NOT NULL,
-                        exam_type TEXT DEFAULT 'final',
+                        exam_type TEXT DEFAULT "final",
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
                         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
                     )
                 """,
-                'columns': ['id', 'course_id', 'department_id', 'date', 'start_time', 'duration', 'exam_type', 'created_at']
+                "columns": ["id", "course_id", "department_id", "date", "start_time", "duration", "exam_type", "created_at"]
             },
             {
-                'name': 'exam_classrooms',
-                'sql': """
+                "name": "exam_classrooms",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS exam_classrooms (
                         id INTEGER PRIMARY KEY,
                         exam_id INTEGER NOT NULL,
@@ -191,11 +191,11 @@ def migrate_database():
                         UNIQUE(exam_id, classroom_id)
                     )
                 """,
-                'columns': ['id', 'exam_id', 'classroom_id', 'created_at']
+                "columns": ["id", "exam_id", "classroom_id", "created_at"]
             },
             {
-                'name': 'exam_seating',
-                'sql': """
+                "name": "exam_seating",
+                "sql": """
                     CREATE TABLE IF NOT EXISTS exam_seating (
                         id INTEGER PRIMARY KEY,
                         student_id INTEGER NOT NULL,
@@ -211,12 +211,12 @@ def migrate_database():
                         UNIQUE(exam_id, student_id)
                     )
                 """,
-                'columns': ['id', 'student_id', 'exam_id', 'classroom_id', 'row', 'col', 'seat_position', 'created_at']
+                "columns": ["id", "student_id", "exam_id", "classroom_id", "row", "col", "seat_position", "created_at"]
             }
         ]
         
         for table_info in tables:
-            migrate_table(cursor, table_info['name'], table_info['sql'], table_info['columns'])
+            migrate_table(cursor, table_info["name"], table_info["sql"], table_info["columns"])
         
         print("\nRecreating indexes...")
         cursor.execute("DROP INDEX IF EXISTS idx_users_email")

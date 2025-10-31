@@ -27,7 +27,7 @@ def test_display_id_system():
     try:
         print("\n[1] Creating test departments...")
         cursor.execute("SELECT MAX(display_id) as max_id FROM departments")
-        max_id = cursor.fetchone()['max_id'] or 0
+        max_id = cursor.fetchone()["max_id"] or 0
         
         test_depts = []
         for i in range(1, 4):
@@ -45,7 +45,7 @@ def test_display_id_system():
         conn.commit()
         print(f"  ✓ Department deleted")
         
-        cursor.execute("SELECT * FROM deleted_ids WHERE table_name='departments' AND display_id=?", (max_id + 2,))
+        cursor.execute("SELECT * FROM deleted_ids WHERE table_name="departments" AND display_id=?", (max_id + 2,))
         result = cursor.fetchone()
         if result:
             print(f"  ✓ display_id {max_id + 2} recorded in deleted_ids table")
@@ -56,17 +56,17 @@ def test_display_id_system():
         
         cursor.execute("""
             SELECT display_id FROM deleted_ids
-            WHERE table_name = 'departments'
+            WHERE table_name = "departments"
             ORDER BY display_id ASC
             LIMIT 1
         """)
         result = cursor.fetchone()
         
         if result:
-            recycled_id = result['display_id']
+            recycled_id = result["display_id"]
             cursor.execute("""
                 DELETE FROM deleted_ids
-                WHERE table_name = 'departments' AND display_id = ?
+                WHERE table_name = "departments" AND display_id = ?
             """, (recycled_id,))
             
             cursor.execute("""
@@ -80,7 +80,7 @@ def test_display_id_system():
             print("  ✗ No recycled ID available")
         
         print("\n[4] Cleaning up test data...")
-        cursor.execute("DELETE FROM departments WHERE code LIKE 'TEST%' OR code = 'RECYCLED'")
+        cursor.execute("DELETE FROM departments WHERE code LIKE "TEST%" OR code = "RECYCLED"")
         conn.commit()
         print("  ✓ Test data cleaned up")
         
@@ -112,7 +112,7 @@ def test_cascade_delete():
     try:
         print("\n[1] Creating test department...")
         cursor.execute("SELECT MAX(display_id) as max_id FROM departments")
-        max_id = cursor.fetchone()['max_id'] or 0
+        max_id = cursor.fetchone()["max_id"] or 0
         display_id = max_id + 1
         
         cursor.execute("""
@@ -126,21 +126,21 @@ def test_cascade_delete():
         
         cursor.execute("""
             INSERT INTO classrooms (display_id, department_id, code, name, capacity, rows, cols)
-            VALUES (1, ?, 'C101', 'Test Classroom', 40, 5, 8)
+            VALUES (1, ?, "C101", "Test Classroom", 40, 5, 8)
         """, (dept_id,))
         classroom_id = cursor.lastrowid
         print(f"  ✓ Classroom created: id={classroom_id}")
         
         cursor.execute("""
             INSERT INTO courses (display_id, department_id, code, name, class_level, type)
-            VALUES (1, ?, 'TST101', 'Test Course', 1, 'mandatory')
+            VALUES (1, ?, "TST101", "Test Course", 1, "mandatory")
         """, (dept_id,))
         course_id = cursor.lastrowid
         print(f"  ✓ Course created: id={course_id}")
         
         cursor.execute("""
             INSERT INTO students (display_id, department_id, student_no, name, class_level)
-            VALUES (1, ?, 'TEST001', 'Test Student', 1)
+            VALUES (1, ?, "TEST001", "Test Student", 1)
         """, (dept_id,))
         student_id = cursor.lastrowid
         print(f"  ✓ Student created: id={student_id}")
@@ -156,9 +156,9 @@ def test_cascade_delete():
         print("\n[3] Counting related records before deletion...")
         counts_before = {}
         
-        tables = ['classrooms', 'courses', 'students', 'student_courses']
+        tables = ["classrooms", "courses", "students", "student_courses"]
         for table in tables:
-            if table == 'student_courses':
+            if table == "student_courses":
                 cursor.execute(f"""
                     SELECT COUNT(*) as cnt FROM {table}
                     WHERE student_id = ? OR course_id = ?
@@ -168,7 +168,7 @@ def test_cascade_delete():
                     SELECT COUNT(*) as cnt FROM {table}
                     WHERE department_id = ?
                 """, (dept_id,))
-            counts_before[table] = cursor.fetchone()['cnt']
+            counts_before[table] = cursor.fetchone()["cnt"]
             print(f"  - {table}: {counts_before[table]} records")
         
         print(f"\n[4] Deleting department (id={dept_id})...")
@@ -180,7 +180,7 @@ def test_cascade_delete():
         all_deleted = True
         
         for table in tables:
-            if table == 'student_courses':
+            if table == "student_courses":
                 cursor.execute(f"""
                     SELECT COUNT(*) as cnt FROM {table}
                     WHERE student_id = ? OR course_id = ?
@@ -190,7 +190,7 @@ def test_cascade_delete():
                     SELECT COUNT(*) as cnt FROM {table}
                     WHERE department_id = ?
                 """, (dept_id,))
-            count_after = cursor.fetchone()['cnt']
+            count_after = cursor.fetchone()["cnt"]
             
             if count_after == 0:
                 print(f"  ✓ {table}: {counts_before[table]} → 0 (CASCADE worked!)")
@@ -238,8 +238,8 @@ def test_department_scoped_display_id():
             print("  ⚠ Not enough departments to test. Skipping...")
             return True
         
-        dept1_id, dept1_name = depts[0]['id'], depts[0]['name']
-        dept2_id, dept2_name = depts[1]['id'], depts[1]['name']
+        dept1_id, dept1_name = depts[0]["id"], depts[0]["name"]
+        dept2_id, dept2_name = depts[1]["id"], depts[1]["name"]
         
         print(f"\n[1] Testing with two departments:")
         print(f"  - Dept 1: {dept1_name} (id={dept1_id})")
@@ -249,14 +249,14 @@ def test_department_scoped_display_id():
         
         cursor.execute("""
             INSERT INTO students (display_id, department_id, student_no, name, class_level)
-            VALUES (999, ?, 'TEST999A', 'Test Student A', 1)
+            VALUES (999, ?, "TEST999A", "Test Student A", 1)
         """, (dept1_id,))
         student1_id = cursor.lastrowid
         print(f"  ✓ Student created in Dept 1: id={student1_id}, display_id=999")
         
         cursor.execute("""
             INSERT INTO students (display_id, department_id, student_no, name, class_level)
-            VALUES (999, ?, 'TEST999B', 'Test Student B', 1)
+            VALUES (999, ?, "TEST999B", "Test Student B", 1)
         """, (dept2_id,))
         student2_id = cursor.lastrowid
         print(f"  ✓ Student created in Dept 2: id={student2_id}, display_id=999")
@@ -266,7 +266,7 @@ def test_department_scoped_display_id():
         cursor.execute("""
             SELECT COUNT(*) as cnt FROM students WHERE display_id = 999
         """)
-        count = cursor.fetchone()['cnt']
+        count = cursor.fetchone()["cnt"]
         
         if count == 2:
             print(f"\n  ✓ Both students exist with display_id=999 (department-scoped)")
@@ -275,7 +275,7 @@ def test_department_scoped_display_id():
             return False
         
         print("\n[3] Cleaning up test data...")
-        cursor.execute("DELETE FROM students WHERE student_no LIKE 'TEST999%'")
+        cursor.execute("DELETE FROM students WHERE student_no LIKE "TEST999%"")
         conn.commit()
         print("  ✓ Test data cleaned up")
         

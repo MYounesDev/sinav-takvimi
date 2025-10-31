@@ -18,7 +18,7 @@ def backup_database():
         print("No existing database found. Starting fresh.")
         return False
     
-    backup_path = DATABASE_PATH.replace('.db', f'_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
+    backup_path = DATABASE_PATH.replace(".db", f"_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db")
     shutil.copy2(DATABASE_PATH, backup_path)
     print(f"✓ Database backed up to: {backup_path}")
     return True
@@ -62,7 +62,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(departments)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE departments ADD COLUMN display_id INTEGER")
             cursor.execute("UPDATE departments SET display_id = id WHERE display_id IS NULL")
             print("  ✓ Added display_id to departments")
@@ -73,7 +73,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(users)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE users ADD COLUMN display_id INTEGER")
             cursor.execute("UPDATE users SET display_id = id WHERE display_id IS NULL")
             print("  ✓ Added display_id to users")
@@ -84,7 +84,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(classrooms)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE classrooms ADD COLUMN display_id INTEGER")
             cursor.execute("""
                 WITH numbered AS (
@@ -106,7 +106,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(courses)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE courses ADD COLUMN display_id INTEGER")
             cursor.execute("""
                 WITH numbered AS (
@@ -128,7 +128,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(students)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE students ADD COLUMN display_id INTEGER")
             cursor.execute("""
                 WITH numbered AS (
@@ -150,7 +150,7 @@ def migrate_database():
         cursor.execute("PRAGMA table_info(exams)")
         columns = [col[1] for col in cursor.fetchall()]
         
-        if 'display_id' not in columns:
+        if "display_id" not in columns:
             cursor.execute("ALTER TABLE exams ADD COLUMN display_id INTEGER")
             cursor.execute("""
                 WITH numbered AS (
@@ -185,7 +185,7 @@ def migrate_database():
                 BEFORE DELETE ON {table_name}
                 BEGIN
                     INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                    VALUES ('{table_name}', OLD.display_id);
+                    VALUES ("{table_name}", OLD.display_id);
                 END
             """)
         print("  ✓ All triggers created")
@@ -239,18 +239,18 @@ def verify_migration():
     cursor = conn.cursor()
     
     try:
-        tables_to_check = ['departments', 'users', 'classrooms', 'courses', 'students', 'exams']
+        tables_to_check = ["departments", "users", "classrooms", "courses", "students", "exams"]
         
         print("\nChecking display_id columns:")
         for table in tables_to_check:
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [col[1] for col in cursor.fetchall()]
-            has_display_id = 'display_id' in columns
+            has_display_id = "display_id" in columns
             status = "✓" if has_display_id else "✗"
-            print(f"  {status} {table}: {'display_id found' if has_display_id else 'MISSING display_id'}")
+            print(f"  {status} {table}: {"display_id found" if has_display_id else "MISSING display_id"}")
         
         print("\nChecking triggers:")
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'before_delete_%'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type="trigger" AND name LIKE "before_delete_%"")
         triggers = cursor.fetchall()
         print(f"  ✓ Found {len(triggers)} triggers:")
         for trigger in triggers:
@@ -267,7 +267,7 @@ def verify_migration():
         if depts:
             print("  Departments:")
             for dept in depts:
-                print(f"    - id={dept['id']}, display_id={dept['display_id']}, name={dept['name']}")
+                print(f"    - id={dept["id"]}, display_id={dept["display_id"]}, name={dept["name"]}")
         
     except Exception as e:
         print(f"\n✗ Verification error: {str(e)}")

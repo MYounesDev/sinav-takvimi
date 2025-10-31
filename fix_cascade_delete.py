@@ -11,7 +11,7 @@ from config import DATABASE_PATH
 
 def backup_database():
     """Create a backup of the current database"""
-    backup_path = DATABASE_PATH.replace('.db', f'_before_cascade_fix_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
+    backup_path = DATABASE_PATH.replace(".db", f"_before_cascade_fix_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db")
     shutil.copy2(DATABASE_PATH, backup_path)
     print(f"✓ Database backed up to: {backup_path}")
     return backup_path
@@ -36,8 +36,8 @@ def fix_cascade_delete():
         
         tables_data = {}
         
-        tables = ['departments', 'users', 'classrooms', 'courses', 'students', 
-                  'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
+        tables = ["departments", "users", "classrooms", "courses", "students", 
+                  "student_courses", "exams", "exam_classrooms", "exam_seating", "deleted_ids"]
         
         for table in tables:
             cursor.execute(f"SELECT * FROM {table}")
@@ -78,7 +78,7 @@ def fix_cascade_delete():
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                role TEXT NOT NULL CHECK(role IN ('admin', 'coordinator')),
+                role TEXT NOT NULL CHECK(role IN ("admin", "coordinator")),
                 department_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -111,7 +111,7 @@ def fix_cascade_delete():
                 name TEXT NOT NULL,
                 instructor TEXT,
                 class_level INTEGER,
-                type TEXT CHECK(type IN ('mandatory', 'elective')),
+                type TEXT CHECK(type IN ("mandatory", "elective")),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
                 UNIQUE(department_id, code)
@@ -152,7 +152,7 @@ def fix_cascade_delete():
                 date TEXT NOT NULL,
                 start_time TEXT NOT NULL,
                 duration INTEGER NOT NULL,
-                exam_type TEXT DEFAULT 'final',
+                exam_type TEXT DEFAULT "final",
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
@@ -206,7 +206,7 @@ def fix_cascade_delete():
         ]
         
         for idx_name, table_name, column in indexes:
-            cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}{column if column.startswith('(') else f'({column})'}")
+            cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}{column if column.startswith("(") else f"({column})"}")
         print("  ✓ All indexes created")
         
         print("\nStep 5: Creating triggers...")
@@ -225,22 +225,22 @@ def fix_cascade_delete():
                 BEFORE DELETE ON {table_name}
                 BEGIN
                     INSERT OR IGNORE INTO deleted_ids (table_name, display_id)
-                    VALUES ('{table_name}', OLD.display_id);
+                    VALUES ("{table_name}", OLD.display_id);
                 END
             """)
         print("  ✓ All triggers created")
         
         print("\nStep 6: Restoring data...")
         
-        restore_order = ['departments', 'users', 'classrooms', 'courses', 'students', 
-                        'student_courses', 'exams', 'exam_classrooms', 'exam_seating', 'deleted_ids']
+        restore_order = ["departments", "users", "classrooms", "courses", "students", 
+                        "student_courses", "exams", "exam_classrooms", "exam_seating", "deleted_ids"]
         
         for table in restore_order:
             if table in tables_data and tables_data[table]:
                 first_row = tables_data[table][0]
                 columns = list(first_row.keys())
-                placeholders = ','.join(['?' for _ in columns])
-                columns_str = ','.join(columns)
+                placeholders = ",".join(["?" for _ in columns])
+                columns_str = ",".join(columns)
                 
                 for row in tables_data[table]:
                     values = tuple(row[col] for col in columns)
