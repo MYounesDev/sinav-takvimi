@@ -142,6 +142,7 @@ class Styles:
             padding: 10px 14px;
             font-size: 13px;
             color: {COLORS['text']};
+            min-height: 20px;
         }}
         QComboBox:focus {{
             border-color: {COLORS['primary']};
@@ -159,8 +160,28 @@ class Styles:
         }}
         QComboBox QAbstractItemView {{
             background-color: #FFFFFF;
-            border: 1px solid #E0E6EB;
-            selection-background-color: {COLORS['primary']}20;
+            border: 2px solid {COLORS['primary']};
+            border-radius: 8px;
+            padding: 5px;
+            selection-background-color: {COLORS['primary']};
+            selection-color: #FFFFFF;
+            color: {COLORS['text']};
+            font-size: 13px;
+            outline: none;
+        }}
+        QComboBox QAbstractItemView::item {{
+            padding: 8px 12px;
+            border: none;
+            min-height: 25px;
+            color: {COLORS['text']};
+        }}
+        QComboBox QAbstractItemView::item:hover {{
+            background-color: {COLORS['primary']}30;
+            color: {COLORS['text']};
+        }}
+        QComboBox QAbstractItemView::item:selected {{
+            background-color: {COLORS['primary']};
+            color: #FFFFFF;
         }}
     """
     

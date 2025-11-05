@@ -4,6 +4,7 @@ Exam Scheduling Algorithm
 
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Set
+import random
 from src.database.db_manager import db_manager
 
 class ExamScheduler:
@@ -80,12 +81,16 @@ class ExamScheduler:
         if not time_slots:
             raise ValueError("No valid time slots available in the given date range.")
         
+        # Get courses with their student counts
         courses_with_count = []
         for course in self.courses:
             student_count = len(self.course_students.get(course["id"], set()))
             courses_with_count.append((course, student_count))
         
-        courses_with_count.sort(key=lambda x: x[1], reverse=True)
+        # Randomize the order completely to avoid level-based scheduling
+        # Instead of sorting by student count first, we'll randomize
+        # and handle classroom allocation dynamically
+        random.shuffle(courses_with_count)
         
         scheduled_exams = []
         scheduled_courses = set()
