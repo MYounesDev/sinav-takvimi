@@ -28,9 +28,9 @@ def add_coordinators():
             print(f"  - {dept["name"]} ({dept["code"]})")
         
         coordinators = [
-            ("Bilgisayar Koordinatörü", "bilgisayar@gmail.com", "BİLGİSAYAR"),
-            ("Yazılım Koordinatörü", "yazilim@gmail.com", "YAZILIM"),
-            ("Elektrik Koordinatörü", "elektrik@gmail.com", "ELEKTRİK"),
+            ("Computer Coordinator", "bilgisayar@gmail.com", "COMPUTER"),
+            ("Software Coordinator", "yazilim@gmail.com", "SOFTWARE"),
+            ("Electrical Coordinator", "elektrik@gmail.com", "ELECTRICAL"),
 
         ]
         
@@ -46,12 +46,12 @@ def add_coordinators():
             if dept_code not in dept_map:
                 print(f"  ⚠️  Department {dept_code} not found. Creating it...")
                 
-                dept_names = {
-                    "BİLGİSAYAR": "Bilgisayar Mühendisliği",
-                    "YAZILIM": "Yazılım Mühendisliği",
-                    "ELEKTRİK": "Elektrik Mühendisliği",
-                    "ELEKTRONİK": "Elektronik Mühendisliği",
-                    "İNŞAAT": "İnşaat Mühendisliği"
+                dept_map = {
+                    "COMPUTER": "Computer Engineering",
+                    "SOFTWARE": "Software Engineering",
+                    "ELECTRICAL": "Electrical Engineering",
+                    "ELECTRONICS": "Electronics Engineering",
+                    "CIVIL": "Civil Engineering"
                 }
                 
                 cursor.execute("""

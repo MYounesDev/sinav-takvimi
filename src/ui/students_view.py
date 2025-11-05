@@ -193,11 +193,12 @@ class StudentsView(QWidget):
         self.display_students(filtered)
     
     def _normalize_turkish_students(self, df):
-        """Normalize Turkish student format to standard format
-        Turkish format is in long format: one row per student-course pair
+        """Normalize Turkish or English student format to standard format
+        Long format: one row per student-course pair
         Need to convert to wide format: one row per student with all courses
         """
         column_map = {
+            # Turkish variants
             'Öğrenci No': 'student_no',
             'öğrenci no': 'student_no',
             'ÖĞRENCI NO': 'student_no',
@@ -214,6 +215,22 @@ class StudentsView(QWidget):
             'DERS': 'course_code',
             'Ders Kodu': 'course_code',
             'ders kodu': 'course_code',
+            # English variants
+            'Student No': 'student_no',
+            'student no': 'student_no',
+            'STUDENT NO': 'student_no',
+            'Full Name': 'name',
+            'full name': 'name',
+            'Name': 'name',
+            'name': 'name',
+            'Class': 'class_level_str',
+            'class': 'class_level_str',
+            'CLASS': 'class_level_str',
+            'Course': 'course_code',
+            'course': 'course_code',
+            'COURSE': 'course_code',
+            'Course Code': 'course_code',
+            'course code': 'course_code',
         }
         
         new_columns = {}
@@ -257,8 +274,10 @@ class StudentsView(QWidget):
         try:
             df = pd.read_excel(file_path)
             
-            turkish_columns = ['Öğrenci No', 'Ad Soyad', 'Sınıf', 'Ders']
-            if any(col in df.columns for col in turkish_columns):
+            # Check for both Turkish and English column formats
+            format_columns = ['Öğrenci No', 'Ad Soyad', 'Sınıf', 'Ders', 
+                            'Student No', 'Full Name', 'Class', 'Course']
+            if any(col in df.columns for col in format_columns):
                 df = self._normalize_turkish_students(df)
             
             required_columns = ['student_no', 'name']
@@ -269,7 +288,7 @@ class StudentsView(QWidget):
                     self, "Invalid Format",
                     f"Missing required columns: {', '.join(missing_columns)}\n\n"
                     "Expected columns: student_no, name, class_level (optional), course_codes (optional, comma-separated)\n\n"
-                    "Or Turkish format with columns: Öğrenci No, Ad Soyad, Sınıf, Ders"
+                    "Or format with columns: Student No, Full Name, Class, Course"
                 )
                 return
             

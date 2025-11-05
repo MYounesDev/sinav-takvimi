@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         """Initialize the UI"""
-        self.setWindowTitle("Sınav Planlama Sistemi - Kocaeli Üniversitesi")
+        self.setWindowTitle("Exam Planning System - Kocaeli University")
         self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setStyleSheet(Styles.MAIN_WINDOW)
         
@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
                 padding: 5px;
             }}
         """)
-        self.status_bar.showMessage("Hazır | F5 ile yenile")
+        self.status_bar.showMessage("Ready | Press F5 to refresh")
         
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
         toggle_btn.clicked.connect(self.toggle_sidebar)
         header_layout.addWidget(toggle_btn)
         
-        title_label = QLabel("📚 Sınav Planlama")
+        title_label = QLabel("📚 Exam Planning")
         title_label.setStyleSheet(f"""
             QLabel {{
                 color: {COLORS['white']};
@@ -164,19 +164,19 @@ class MainWindow(QMainWindow):
         
         self.nav_buttons = []
         
-        self.add_nav_button("🏠 Gösterge Paneli", 0, layout)
-        self.add_nav_button("🏫 Sınıflar", 1, layout)
-        self.add_nav_button("📖 Dersler", 2, layout)
-        self.add_nav_button("👨‍🎓 Öğrenciler", 3, layout)
-        self.add_nav_button("📅 Sınav Programı", 4, layout)
-        self.add_nav_button("💺 Oturma Düzeni", 5, layout)
+        self.add_nav_button("🏠 Dashboard", 0, layout)
+        self.add_nav_button("🏫 Classrooms", 1, layout)
+        self.add_nav_button("📖 Courses", 2, layout)
+        self.add_nav_button("👨‍🎓 Students", 3, layout)
+        self.add_nav_button("📅 Exam Schedule", 4, layout)
+        self.add_nav_button("💺 Seating Plan", 5, layout)
         
         self.admin_users_btn = None
         self.admin_depts_btn = None
         
         layout.addStretch()
         
-        logout_btn = QPushButton("🚪 Çıkış")
+        logout_btn = QPushButton("🚪 Logout")
         logout_btn.setStyleSheet(Styles.SIDEBAR_BUTTON)
         logout_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         logout_btn.clicked.connect(self.handle_logout)
@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
             self.sidebar.setMinimumWidth(250)
             self.sidebar.setMaximumWidth(250)
             self.sidebar_expanded = True
-            titles = ["🏠 Gösterge Paneli", "🏫 Sınıflar", "📖 Dersler", "👨‍🎓 Öğrenciler", "📅 Sınav Programı", "💺 Oturma Düzeni"]
+            titles = ["🏠 Dashboard", "🏫 Classrooms", "📖 Courses", "👨‍🎓 Students", "📅 Exam Schedule", "💺 Seating Plan"]
             for i, btn in enumerate(self.nav_buttons):
                 if i < len(titles):
                     btn.setText(titles[i])
@@ -227,13 +227,13 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(top_bar)
         layout.setContentsMargins(30, 0, 30, 0)
         
-        self.page_title = QLabel("Gösterge Paneli")
+        self.page_title = QLabel("Dashboard")
         self.page_title.setStyleSheet(Styles.TITLE_LABEL)
         layout.addWidget(self.page_title)
         
         layout.addStretch()
         
-        self.admin_menu_btn = QPushButton("⚙️ Yönetim")
+        self.admin_menu_btn = QPushButton("⚙️ Management")
         self.admin_menu_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLORS['primary']};
@@ -281,9 +281,9 @@ class MainWindow(QMainWindow):
                 continue
         
         user = get_current_user()
-        titles = ["Gösterge Paneli", "Sınıflar", "Dersler", "Öğrenciler", "Sınav Programı", "Oturma Düzeni"]
+        titles = ["Dashboard", "Classrooms", "Courses", "Students", "Exam Schedule", "Seating Plan"]
         if user and user['role'] == 'admin':
-            titles.extend(["Kullanıcılar", "Bölümler"])
+            titles.extend(["Users", "Departments"])
         if index < len(titles):
             self.page_title.setText(titles[index])
         
@@ -293,47 +293,47 @@ class MainWindow(QMainWindow):
         """Manually refresh current page (triggered by F5)"""
         if self.stacked_widget.currentWidget() == self.app_view:
             current_index = self.content_stack.currentIndex()
-            self.status_bar.showMessage("🔄 El ile yenileme (F5)...")
+            self.status_bar.showMessage("🔄 Manual refresh (F5)...")
             self.refresh_current_page(current_index)
     
     def refresh_current_page(self, index: int):
         """Refresh data for the current page"""
         try:
             if not self.status_bar.currentMessage().startswith("🔄"):
-                self.status_bar.showMessage("🔄 Veriler yenileniyor...")
+                self.status_bar.showMessage("🔄 Refreshing data...")
             
             if index == 0:  
                 self.dashboard_view.load_data()
-                self.status_bar.showMessage("✅ Gösterge paneli güncellendi", 2000)
+                self.status_bar.showMessage("✅ Dashboard updated", 2000)
             elif index == 1:  
                 self.classrooms_view.load_classrooms()
-                self.status_bar.showMessage("✅ Sınıflar güncellendi", 2000)
+                self.status_bar.showMessage("✅ Classrooms updated", 2000)
             elif index == 2:  
                 self.courses_view.load_courses()
-                self.status_bar.showMessage("✅ Dersler güncellendi", 2000)
+                self.status_bar.showMessage("✅ Courses updated", 2000)
             elif index == 3:  
                 self.students_view.load_students()
-                self.status_bar.showMessage("✅ Öğrenciler güncellendi", 2000)
+                self.status_bar.showMessage("✅ Students updated", 2000)
             elif index == 4:  
                 self.exam_schedule_view.load_schedule()
-                self.status_bar.showMessage("✅ Sınav programı güncellendi", 2000)
+                self.status_bar.showMessage("✅ Exam schedule updated", 2000)
             elif index == 5:  
                 self.seating_plan_view.load_exams()
                 if hasattr(self.seating_plan_view, 'current_exam_id') and self.seating_plan_view.current_exam_id:
                     self.seating_plan_view.load_seating()
-                self.status_bar.showMessage("✅ Oturma düzeni güncellendi", 2000)
+                self.status_bar.showMessage("✅ Seating plan updated", 2000)
             elif index == 6:  
                 self.users_view.load_users()
-                self.status_bar.showMessage("✅ Kullanıcılar güncellendi", 2000)
+                self.status_bar.showMessage("✅ Users updated", 2000)
             elif index == 7:  
                 self.departments_view.load_departments()
-                self.status_bar.showMessage("✅ Bölümler güncellendi", 2000)
+                self.status_bar.showMessage("✅ Departments updated", 2000)
             
-            QTimer.singleShot(2000, lambda: self.status_bar.showMessage("Hazır | F5 ile yenile"))
+            QTimer.singleShot(2000, lambda: self.status_bar.showMessage("Ready | Press F5 to refresh"))
         except Exception as e:
-            error_msg = f"❌ Hata: {str(e)}"
+            error_msg = f"❌ Error: {str(e)}"
             self.status_bar.showMessage(error_msg, 5000)
-            print(f"Sayfa {index} yenilenemedi: {e}")
+            print(f"Page {index} could not be refreshed: {e}")
     
     def on_login_successful(self, user: dict):
         """Handle successful login"""
@@ -341,15 +341,15 @@ class MainWindow(QMainWindow):
         
         if user['role'] == 'admin':
             self.admin_menu.clear()
-            users_action = self.admin_menu.addAction("👥 Kullanıcılar")
+            users_action = self.admin_menu.addAction("👥 Users")
             users_action.triggered.connect(lambda: self.switch_page(6))
             
-            depts_action = self.admin_menu.addAction("🏢 Bölümler")
+            depts_action = self.admin_menu.addAction("🏢 Departments")
             depts_action.triggered.connect(lambda: self.switch_page(7))
             
             self.admin_menu_btn.show()
         
-        role_display = "Yönetici" if user['role'] == 'admin' else "Koordinatör"
+        role_display = "Administrator" if user['role'] == 'admin' else "Coordinator"
         dept_display = f" - {user['department_name']}" if user.get('department_name') else ""
         self.user_label.setText(f"👤 {user['name']} ({role_display}){dept_display}")
         

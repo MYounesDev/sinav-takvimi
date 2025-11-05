@@ -87,7 +87,7 @@ class SplashScreen(QWidget):
         content_layout.addSpacing(10)
         
         # Modern title with refined typography
-        self.title = QLabel("Sınav Planlama")
+        self.title = QLabel("Exam Planning")
         self.title.setStyleSheet(f"""
             QLabel {{
                 color: #FFFFFF;
@@ -103,7 +103,7 @@ class SplashScreen(QWidget):
         content_layout.addWidget(self.title)
         
         # Subtitle
-        self.subtitle = QLabel("Sistemesi")
+        self.subtitle = QLabel("System")
         self.subtitle.setStyleSheet(f"""
             QLabel {{
                 color: rgba(255, 255, 255, 0.9);

@@ -219,7 +219,7 @@ class ClassroomsView(QWidget):
         """Edit selected classroom"""
         row = self.table.currentRow()
         if row < 0:
-            QMessageBox.warning(self, "Seçim Yok", "Lütfen düzenlemek için bir derslik seçin")
+            QMessageBox.warning(self, "No Selection", "Please select a classroom to edit")
             return
         
         classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
@@ -236,29 +236,29 @@ class ClassroomsView(QWidget):
         """Delete selected classroom"""
         row = self.table.currentRow()
         if row < 0:
-            QMessageBox.warning(self, "Seçim Yok", "Lütfen silmek için bir derslik seçin")
+            QMessageBox.warning(self, "No Selection", "Please select a classroom to delete")
             return
         
         classroom_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         classroom_name = self.table.item(row, 2).text()
         
         reply = QMessageBox.question(
-            self, "Onay",
-            f"'{classroom_name}' dersliğini silmek istediğinizden emin misiniz?",
+            self, "Confirm",
+            f"Are you sure you want to delete classroom '{classroom_name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
             query = "DELETE FROM classrooms WHERE id = ?"
             db_manager.execute_update(query, (classroom_id,))
-            QMessageBox.information(self, "Başarılı", "Derslik başarıyla silindi!")
+            QMessageBox.information(self, "Success", "Classroom deleted successfully!")
             self.load_classrooms()
     
     def clear_all_classrooms(self):
         """Clear all classrooms"""
         reply = QMessageBox.question(
-            self, "Onay",
-            "TÜM derslikleri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+            self, "Confirm",
+            "Are you sure you want to delete ALL classrooms? This action cannot be undone.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -278,7 +278,7 @@ class ClassroomsView(QWidget):
             query = f"""DELETE FROM classrooms
             {dept_filter}"""
             db_manager.execute_update(query)
-            QMessageBox.information(self, "Başarılı", "Tüm derslikler başarıyla silindi!")
+            QMessageBox.information(self, "Success", "All classrooms deleted successfully!")
             self.load_classrooms()
 
 class ClassroomDialog(QDialog):
@@ -292,7 +292,7 @@ class ClassroomDialog(QDialog):
         
     def init_ui(self):
         """Initialize the UI"""
-        self.setWindowTitle("Derslik Düzenle" if self.is_edit else "Derslik Ekle")
+        self.setWindowTitle("Edit Classroom" if self.is_edit else "Add Classroom")
         self.setMinimumWidth(700)
         self.setMinimumHeight(600)
         
@@ -351,12 +351,12 @@ class ClassroomDialog(QDialog):
         
         button_layout = QHBoxLayout()
         
-        save_btn = QPushButton("Kaydet")
+        save_btn = QPushButton("Save")
         save_btn.setStyleSheet(Styles.PRIMARY_BUTTON)
         save_btn.clicked.connect(self.save)
         button_layout.addWidget(save_btn)
         
-        cancel_btn = QPushButton("İptal")
+        cancel_btn = QPushButton("Cancel")
         cancel_btn.setStyleSheet(Styles.SECONDARY_BUTTON)
         cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(cancel_btn)
@@ -368,7 +368,7 @@ class ClassroomDialog(QDialog):
         preview_widget = QWidget()
         preview_layout = QVBoxLayout(preview_widget)
         
-        preview_title = QLabel("Derslik Önizlemesi")
+        preview_title = QLabel("Classroom Preview")
         preview_title.setStyleSheet(Styles.SUBTITLE_LABEL)
         preview_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         preview_layout.addWidget(preview_title)
@@ -463,7 +463,7 @@ class ClassroomDialog(QDialog):
         capacity = rows * cols * seats
         
         if not name:
-            QMessageBox.warning(self, "Doğrulama Hatası", "Derslik adı boş olamaz")
+            QMessageBox.warning(self, "Validation Error", "Classroom name cannot be empty")
             return
         
         user = get_current_user()
@@ -471,7 +471,7 @@ class ClassroomDialog(QDialog):
         if user['role'] == 'admin' and self.dept_combo:
             dept_id = self.dept_combo.currentData()
             if not dept_id:
-                QMessageBox.warning(self, "Doğrulama Hatası", "Lütfen bir departman seçin")
+                QMessageBox.warning(self, "Validation Error", "Please select a department")
                 return
         else:
             dept_id = user['department_id']
@@ -484,7 +484,7 @@ class ClassroomDialog(QDialog):
                     WHERE id = ?
                 """
                 db_manager.execute_update(query, (dept_id, code, name, capacity, rows, cols, seats, self.classroom_data['id']))
-                QMessageBox.information(self, "Başarılı", "Derslik başarıyla güncellendi!")
+                QMessageBox.information(self, "Success", "Classroom updated successfully!")
             else:
                 display_id = db_manager.get_next_display_id('classrooms')
                 query = """
@@ -492,9 +492,9 @@ class ClassroomDialog(QDialog):
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 db_manager.execute_update(query, (display_id, dept_id, code, name, capacity, rows, cols, seats))
-                QMessageBox.information(self, "Başarılı", "Derslik başarıyla eklendi!")
+                QMessageBox.information(self, "Success", "Classroom added successfully!")
             
             self.accept()
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Derslik kaydedilemedi: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Could not save classroom: {str(e)}")
 

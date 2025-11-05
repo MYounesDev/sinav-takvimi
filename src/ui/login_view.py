@@ -150,7 +150,7 @@ class LoginView(QWidget):
         """)
         left_layout.addWidget(left_title)
         
-        left_subtitle = QLabel("Sınav Planlama Sistemi")
+        left_subtitle = QLabel("Exam Planning System")
         left_subtitle.setStyleSheet("""
             QLabel {
                 color: rgba(255, 255, 255, 0.9);
@@ -288,7 +288,7 @@ class LoginView(QWidget):
         """)
         info_layout.addWidget(admin_info)
         
-        coord_info = QLabel("Coordinators: bilgisayar@gmail.com, yazilim@gmail.com")
+        coord_info = QLabel("Coordinators: bilgisayar@gmail.com (all use password: admin123)")
         coord_info.setStyleSheet(f"""
             QLabel {{
                 color: {COLORS['text']};

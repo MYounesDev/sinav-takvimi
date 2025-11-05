@@ -27,9 +27,9 @@ if __name__ == "__main__":
         print("    Email: admin@gmail.com")
         print("    Password: admin123")
         print("\n  Coordinators (password: admin123):")
-        print("    - bilgisayar@gmail.com (Bilgisayar Mühendisliği)")
-        print("    - yazilim@gmail.com (Yazılım Mühendisliği)")
-        print("    - elektrik@gmail.com (Elektrik Mühendisliği)")
+        print("    - bilgisayar@gmail.com (Computer Engineering)")
+        print("    - yazilim@gmail.com (Software Engineering)")
+        print("    - elektrik@gmail.com (Electrical Engineering)")
 
         
         print("\n" + "=" * 70)

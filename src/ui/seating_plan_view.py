@@ -210,7 +210,7 @@ class SeatingPlanView(QWidget):
         exam_result = db_manager.execute_query(exam_query, (self.current_exam_id,))
         
         if not exam_result:
-            QMessageBox.critical(self, "Error", "❌ Seçilen sınav bulunamadı!")
+            QMessageBox.critical(self, "Error", "❌ Selected exam not found!")
             return
         
         exam = exam_result[0]
@@ -227,8 +227,8 @@ class SeatingPlanView(QWidget):
         if students_count == 0:
             QMessageBox.warning(
                 self, 
-                "Uyarı", 
-                f"❌ Bu derse kayıtlı öğrenci bulunamadı!\n\nDers: {exam['course_code']} - {exam['course_name']}"
+                "Warning", 
+                f"❌ No students enrolled in this course!\n\nCourse: {exam['course_code']} - {exam['course_name']}"
             )
             return
         
@@ -244,24 +244,24 @@ class SeatingPlanView(QWidget):
         if not classrooms:
             QMessageBox.warning(
                 self,
-                "Uyarı",
-                "❌ Derslik bulunamadı!\n\nBu sınav için henüz derslik atanmamış."
+                "Warning",
+                "❌ No classroom found!\n\nNo classroom has been assigned to this exam yet."
             )
             return
         
         total_capacity = sum(cl['capacity'] for cl in classrooms)
         
         if total_capacity < students_count:
-            classroom_list = "\n".join([f"  • {cl['name']}: {cl['capacity']} kişi" for cl in classrooms])
+            classroom_list = "\n".join([f"  • {cl['name']}: {cl['capacity']} seats" for cl in classrooms])
             QMessageBox.critical(
                 self,
-                "Kapasite Yetersiz",
-                f"❌ Sınıf kapasitesi yetersiz!\n\n"
-                f"Toplam Öğrenci: {students_count}\n"
-                f"Toplam Kapasite: {total_capacity}\n"
-                f"Eksik: {students_count - total_capacity} kişi\n\n"
-                f"Atanmış Derslikler:\n{classroom_list}\n\n"
-                f"Lütfen daha fazla derslik ekleyin veya daha büyük derslikler seçin."
+                "Insufficient Capacity",
+                f"❌ Classroom capacity is insufficient!\n\n"
+                f"Total Students: {students_count}\n"
+                f"Total Capacity: {total_capacity}\n"
+                f"Shortage: {students_count - total_capacity} seats\n\n"
+                f"Assigned Classrooms:\n{classroom_list}\n\n"
+                f"Please add more classrooms or select larger classrooms."
             )
             return
         
@@ -280,16 +280,16 @@ class SeatingPlanView(QWidget):
         
         if conflicts:
             conflict_list = "\n".join([f"  • {c['student_no']} - {c['name']}: {c['courses']}" for c in conflicts[:5]])
-            warning_msg = f"⚠️ Öğrencilerin dersleri çakışıyor!\n\n"
-            warning_msg += f"{len(conflicts)} öğrencinin bu sınavla aynı zamanda başka sınavı var:\n\n"
+            warning_msg = f"⚠️ Students have conflicting exams!\n\n"
+            warning_msg += f"{len(conflicts)} students have another exam at the same time:\n\n"
             warning_msg += conflict_list
             if len(conflicts) > 5:
-                warning_msg += f"\n  ... ve {len(conflicts) - 5} öğrenci daha"
-            warning_msg += "\n\nDevam etmek istiyor musunuz?"
+                warning_msg += f"\n  ... and {len(conflicts) - 5} more students"
+            warning_msg += "\n\nDo you want to continue?"
             
             reply = QMessageBox.question(
                 self,
-                "Çakışma Uyarısı",
+                "Conflict Warning",
                 warning_msg,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
@@ -299,14 +299,14 @@ class SeatingPlanView(QWidget):
         
         reply = QMessageBox.question(
             self, 
-            "Oturma Planı Oluştur",
-            f"📋 Oturma planı oluşturulacak:\n\n"
-            f"Ders: {exam['course_code']} - {exam['course_name']}\n"
-            f"Tarih: {exam['date']} {exam['start_time']}\n"
-            f"Öğrenci Sayısı: {students_count}\n"
-            f"Derslik Sayısı: {len(classrooms)}\n"
-            f"Toplam Kapasite: {total_capacity}\n\n"
-            f"Bu işlem mevcut oturma planını silecektir. Devam edilsin mi?",
+            "Generate Seating Plan",
+            f"📋 A seating plan will be generated:\n\n"
+            f"Course: {exam['course_code']} - {exam['course_name']}\n"
+            f"Date: {exam['date']} {exam['start_time']}\n"
+            f"Number of Students: {students_count}\n"
+            f"Number of Classrooms: {len(classrooms)}\n"
+            f"Total Capacity: {total_capacity}\n\n"
+            f"This will delete the existing seating plan. Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -317,22 +317,22 @@ class SeatingPlanView(QWidget):
                 if generator.generate_seating():
                     QMessageBox.information(
                         self, 
-                        "Başarılı", 
-                        f"✅ Oturma planı başarıyla oluşturuldu!\n\n"
-                        f"{students_count} öğrenci {len(classrooms)} dersliğe yerleştirildi."
+                        "Success", 
+                        f"✅ Seating plan created successfully!\n\n"
+                        f"{students_count} students placed in {len(classrooms)} classrooms."
                     )
                     self.load_seating()
                 else:
                     QMessageBox.critical(
                         self, 
-                        "Hata", 
-                        "❌ Oturma planı oluşturulamadı!\n\nLütfen sınav bilgilerini kontrol edin."
+                        "Error", 
+                        "❌ Seating plan could not be created!\n\nPlease check the exam information."
                     )
             except Exception as e:
                 QMessageBox.critical(
                     self,
-                    "Hata",
-                    f"❌ Oturma planı oluşturulurken hata oluştu:\n\n{str(e)}"
+                    "Error",
+                    f"❌ Error occurred while creating seating plan:\n\n{str(e)}"
                 )
     
     def view_layout(self):

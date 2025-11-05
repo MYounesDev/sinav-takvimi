@@ -221,11 +221,12 @@ class CoursesView(QWidget):
         self.populate_table(filtered)
     
     def _normalize_turkish_courses(self, df):
-        """Normalize Turkish course format to standard format
+        """Normalize course format to standard format
         Handles hierarchical structure where class level and course type are indicated
-        by section header rows (e.g., "2. Sınıf", "SEÇMELİ DERS")
+        by section header rows (e.g., "2. Class", "ELECTIVE COURSE")
         """
         column_map = {
+            # Turkish variants
             'DERS KODU': 'code',
             'Ders Kodu': 'code',
             'ders kodu': 'code',
@@ -240,6 +241,16 @@ class CoursesView(QWidget):
             'dersi veren öğr. elemanı': 'instructor',
             'Öğretim Elemanı': 'instructor',
             'öğretim elemanı': 'instructor',
+            # English variants
+            'COURSE CODE': 'code',
+            'Course Code': 'code',
+            'course code': 'code',
+            'COURSE NAME': 'name',
+            'Course Name': 'name',
+            'course name': 'name',
+            'INSTRUCTOR': 'instructor',
+            'Instructor': 'instructor',
+            'instructor': 'instructor',
         }
         
         new_columns = {}
@@ -267,21 +278,25 @@ class CoursesView(QWidget):
             code_value = str(row['code']).strip() if pd.notna(row['code']) else ''
             name_value = str(row['name']).strip() if 'name' in row and pd.notna(row.get('name')) else ''
             
-            if 'Sınıf' in code_value or 'SINIF' in code_value or 'sınıf' in code_value:
+            # Check for class level indicators (Turkish and English)
+            if any(keyword in code_value for keyword in ['Sınıf', 'SINIF', 'sınıf', 'Class', 'CLASS', 'class']):
                 match = re.search(r'(\d+)', code_value)
                 if match:
                     current_class_level = int(match.group(1))
                     current_course_type = None  
                 continue  
             
-            if 'SEÇMELİ' in code_value or 'SEÇİMLİK' in code_value or 'SEÇ' in code_value:
+            # Check for elective course indicators (Turkish and English)
+            if any(keyword in code_value for keyword in ['SEÇMELİ', 'SEÇİMLİK', 'SEÇ', 'ELECTIVE', 'Elective', 'elective']):
                 current_course_type = 'elective'
                 continue  
             
-            if 'DERS KODU' in code_value or 'Ders Kodu' in code_value:
+            # Check for course code header
+            if any(keyword in code_value for keyword in ['DERS KODU', 'Ders Kodu', 'COURSE CODE', 'Course Code']):
                 continue  
             
-            if 'ZORUNLU' in code_value:
+            # Check for mandatory course indicators (Turkish and English)
+            if any(keyword in code_value for keyword in ['ZORUNLU', 'Zorunlu', 'MANDATORY', 'Mandatory', 'mandatory']):
                 current_course_type = 'mandatory'
                 continue  
             

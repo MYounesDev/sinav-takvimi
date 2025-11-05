@@ -358,11 +358,11 @@ class DatabaseManager:
         """Create default admin user and departments with coordinators"""
         
         departments = [
-            ('Bilgisayar Mühendisliği', 'BİLGİSAYAR'),
-            ('Yazılım Mühendisliği', 'YAZILIM'),
-            ('Elektrik Mühendisliği', 'ELEKTRİK'),
-            ('Elektronik Mühendisliği', 'ELEKTRONİK'),
-            ('İnşaat Mühendisliği', 'İNŞAAT')
+            ('Computer Engineering', 'COMPUTER'),
+            ('Software Engineering', 'SOFTWARE'),
+            ('Electrical Engineering', 'ELECTRICAL'),
+            ('Electronics Engineering', 'ELECTRONICS'),
+            ('Civil Engineering', 'CIVIL')
         ]
         
         dept_ids = {}
@@ -391,9 +391,9 @@ class DatabaseManager:
         ))
         
         coordinators = [
-            ('Bilgisayar Koordinatörü', 'bilgisayar@gmail.com', 'BİLGİSAYAR'),
-            ('Yazılım Koordinatörü', 'yazilim@gmail.com', 'YAZILIM'),
-            ('Elektrik Koordinatörü', 'elektrik@gmail.com', 'ELEKTRİK')
+            ('Computer Coordinator', 'bilgisayar@gmail.com', 'COMPUTER'),
+            ('Software Coordinator', 'yazilim@gmail.com', 'SOFTWARE'),
+            ('Electrical Coordinator', 'elektrik@gmail.com', 'ELECTRICAL')
         ]
         
         for idx, (coord_name, coord_email, dept_code) in enumerate(coordinators, 2):

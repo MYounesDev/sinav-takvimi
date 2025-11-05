@@ -1,6 +1,6 @@
 """
 Dynamic Exam Scheduler System - Main Entry Point
-Kocamanuali University - Yazlab-1 Project
+Kocaeli University - Yazlab-1 Project
 
 This is the main entry point for the application.
 """
@@ -19,7 +19,7 @@ def main():
     
     app = QApplication(sys.argv)
     app.setApplicationName("Exam Planning System")
-    app.setOrganizationName("Kocamanuali University")
+    app.setOrganizationName("Kocaeli University")
     
     db_manager = DatabaseManager()
     db_manager.initialize_database()
